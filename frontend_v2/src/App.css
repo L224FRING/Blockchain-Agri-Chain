@@ -1,0 +1,806 @@
+/* --- NEW: Import Poppins Font --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* --- Global Styles & Variables (Modern Dark Theme with Green Accents) --- */
+:root {
+  --primary-color: #2ecc71; /* Vibrant Green */
+  --primary-color-dark: #27ae60; /* Darker Green for hover */
+  --secondary-color: #8e44ad; /* Complementary Purple */
+  --background-color: #1e1e2f; /* Deep Dark Blue */
+  --card-background: #2a2a40; /* Slightly Lighter Dark Blue */
+  --text-color: #f0f0f5; /* Soft White */
+  --subtle-text-color: #a0a0c0; /* Light Purple-Gray */
+  --border-color: #404060; /* Dark Border */
+  --success-color: #2ecc71; /* Green */
+  --error-color: #e74c3c; /* Red */
+  --logout-color: #e74c3c; /* Red for logout */
+  --logout-color-dark: #c0392b; /* Darker red */
+  --back-button-color: #555b7a; /* Muted color for back button */
+  --back-button-color-hover: #777d9f; /* Lighter hover for back button */
+
+  /* UPDATED: Changed Font Family */
+  --font-family: 'Poppins', sans-serif;
+  --border-radius-large: 18px; /* Softer radius */
+  --border-radius-small: 10px;
+  --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.5); /* Pronounced shadow */
+  --transition-speed: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smooth transition */
+}
+
+
+/* --- Base & Reset --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.7;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+  font-weight: 400; /* Default weight */
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-speed);
+}
+
+a:hover {
+  color: var(--primary-color-dark);
+  text-decoration: underline;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px;
+  flex-grow: 1;
+  width: 100%;
+}
+main.container {
+    padding-top: 30px; /* Consistent top padding */
+}
+
+
+/* --- Typography --- */
+h1, h2, h3 { /* Added h3 */
+  font-weight: 700;
+  margin-bottom: 1em;
+  color: var(--text-color);
+  letter-spacing: -0.03em; /* Adjusted spacing for Poppins */
+}
+
+h1 { font-size: 2.8rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.3rem; color: var(--primary-color); } /* Style for role card titles */
+
+
+p {
+  font-size: 1.05rem;
+  margin-bottom: 1.2em;
+}
+.subtitle { /* Specific style for hero subtitle */
+    font-size: 1.2rem;
+    color: var(--subtle-text-color);
+    max-width: 700px; /* Limit width for readability */
+    margin: 1.5em auto; /* Center and add space */
+}
+
+
+/* --- Header --- */
+.app-header {
+  background-color: var(--card-background);
+  padding: 15px 40px; /* Reduced padding slightly */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  background-color: rgba(42, 42, 64, 0.85); /* Slightly less transparent */
+}
+
+.logo {
+  font-size: 1.8rem; /* Slightly smaller logo */
+  font-weight: 700; /* Ensure logo is bold */
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-right { /* Container for wallet info and logout button */
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.wallet-info, .wallet-info-placeholder {
+  font-size: 0.9rem; /* Slightly smaller text */
+  color: var(--subtle-text-color);
+  background-color: rgba(30, 30, 47, 0.7);
+  padding: 8px 15px; /* Adjust padding */
+  border-radius: var(--border-radius-small);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(5px);
+}
+
+.wallet-info-placeholder {
+    opacity: 0.7;
+    font-style: italic;
+}
+.role-badge { /* Styling for the role inside wallet info */
+    background-color: var(--primary-color-dark);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    margin-left: 8px;
+    text-transform: uppercase;
+}
+
+
+.connect-button, .button-primary, .logout-button, .back-button { /* Shared base styles */
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--border-radius-small);
+  font-size: 0.95rem; /* Standardized size */
+  font-weight: 600; /* Bolder buttons */
+  cursor: pointer;
+  transition: all var(--transition-speed);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex; /* Use inline-flex */
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-family); /* Ensure button uses the font */
+}
+
+.connect-button, .button-primary { /* Green button styles */
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
+  color: white;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.connect-button:hover, .button-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-color-dark), var(--primary-color));
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+}
+
+.logout-button { /* Red logout button */
+    background: linear-gradient(135deg, var(--logout-color), var(--logout-color-dark));
+    color: white;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+.logout-button:hover {
+    background: linear-gradient(135deg, var(--logout-color-dark), var(--logout-color));
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+}
+
+.back-button {
+    background-color: var(--back-button-color);
+    color: var(--text-color);
+    margin-bottom: 25px; /* Space below the button */
+    padding: 8px 18px; /* Smaller padding */
+    font-size: 0.9rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.back-button:hover {
+    background-color: var(--back-button-color-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+
+.button-primary { /* Specific overrides for primary buttons in cards */
+  /* width: 100%; REMOVED - allow auto width */
+  padding: 14px 25px;
+  font-size: 1rem; /* Slightly larger */
+}
+/* Style for connect button in main content prompt */
+.connect-main-button {
+    width: auto;
+    margin: 20px auto 0 auto;
+    padding: 14px 30px;
+}
+
+
+.button-primary:disabled {
+  background: #50685a;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+
+/* --- Role Navigation Bar (REMOVED) --- */
+/* Ensure no old role navbar styles remain */
+
+
+/* --- Cards --- */
+.card {
+  background-color: var(--card-background);
+  border-radius: var(--border-radius-large);
+  padding: 35px 40px;
+  margin-bottom: 30px;
+  box-shadow: var(--card-shadow);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed), background-color var(--transition-speed), opacity var(--transition-speed);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+
+.card:hover {
+   transform: translateY(-5px);
+   box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 1.7rem;
+  font-weight: 600; /* Make headers slightly bolder */
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connect-prompt {
+    text-align: center;
+}
+.connect-prompt h2 {
+    justify-content: center;
+    border-bottom: none;
+    font-size: 2rem;
+    color: var(--text-color);
+}
+.connect-prompt p {
+    font-size: 1.1rem;
+    color: var(--subtle-text-color);
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* --- Layout --- */
+.main-layout { /* Farmer layout */
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+.main-layout-single { /* Layout for other roles */
+   margin-top: 20px;
+}
+
+@media (min-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1.2fr 2fr;
+  }
+}
+.full-width {
+    grid-column: 1 / -1 !important;
+}
+
+
+/* --- Home Page Specific Styles --- */
+.home-container {
+    padding-top: 30px;
+}
+.hero-section {
+    text-align: center;
+    /* UPDATED: Removed text=... from URL */
+    background: linear-gradient(145deg, rgba(42, 42, 64, 0.8), rgba(30, 30, 47, 0.95));
+    background-size: cover;
+    background-position: center;
+    padding: 70px 40px; /* More padding */
+    border: none;
+}
+.hero-section h1 {
+    font-size: 3.8rem; /* Larger hero title */
+    color: var(--primary-color);
+    margin-bottom: 0.5em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); /* Text shadow for better contrast */
+}
+
+.role-login-section {
+    margin-top: 60px; /* More space */
+}
+.role-login-section h2 {
+    text-align: center;
+    font-size: 2.2rem; /* Larger section title */
+    margin-bottom: 20px;
+    color: var(--subtle-text-color);
+    font-weight: 600;
+}
+.role-login-section > p {
+    text-align: center;
+    color: var(--subtle-text-color);
+    margin-bottom: 50px; /* More space */
+    font-size: 1.1rem;
+}
+
+
+.role-login-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 35px; /* Increase gap */
+}
+
+.role-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: var(--card-background); /* Ensure card background */
+    border-radius: var(--border-radius-large);
+    padding: 30px; /* Padding inside card */
+    box-shadow: var(--card-shadow);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+.role-card:hover { /* Enhance hover on role cards too */
+   transform: translateY(-6px) scale(1.02);
+   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+.role-card h3 {
+    margin-bottom: 15px;
+    font-size: 1.6rem; /* Slightly larger role title */
+    color: var(--primary-color); /* Green title */
+}
+.role-card p {
+    color: var(--subtle-text-color);
+    font-size: 1rem;
+    flex-grow: 1;
+    margin-bottom: 30px; /* More space before button */
+}
+.role-card .button-primary {
+    width: auto;
+    padding: 12px 25px;
+}
+
+
+/* --- Form Elements --- */
+.add-product-form .form-group {
+  margin-bottom: 25px;
+}
+
+.add-product-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--subtle-text-color);
+}
+
+.add-product-form input {
+  width: 100%; /* Use full width */
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  font-size: 1.05rem;
+  background-color: var(--background-color); /* Darker input background */
+  color: var(--text-color);
+  transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+  font-family: var(--font-family); /* Ensure input uses the font */
+}
+
+.add-product-form input::placeholder {
+    color: var(--subtle-text-color);
+    opacity: 0.7;
+}
+
+.add-product-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
+}
+
+/* --- Messages (Success/Error) --- */
+.message {
+  margin-top: 25px;
+  padding: 16px 20px;
+  border-radius: var(--border-radius-small);
+  font-size: 1rem;
+  border: 1px solid transparent;
+  word-wrap: break-word;
+  animation: slideInUp 0.5s var(--transition-speed) forwards;
+  opacity: 0;
+}
+
+.message-success {
+  background-color: rgba(46, 204, 113, 0.15);
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.message-error {
+  background-color: rgba(231, 76, 60, 0.15);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+/* --- Dashboard Table --- */
+.table-responsive {
+    overflow-x: auto;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    margin-top: 20px;
+    background-color: var(--card-background); /* Add background to table container */
+}
+
+.dashboard table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1rem;
+  min-width: 700px;
+}
+
+.dashboard th, .dashboard td {
+  padding: 18px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  color: var(--subtle-text-color);
+}
+.dashboard th:first-child, .dashboard td:first-child {
+    padding-left: 25px; /* More padding on first column */
+}
+.dashboard th:last-child, .dashboard td:last-child {
+    padding-right: 25px; /* More padding on last column */
+}
+/* Remove bottom border from last row */
+.dashboard tr:last-child td {
+    border-bottom: none;
+}
+
+
+.dashboard th {
+  font-weight: 600;
+  color: var(--text-color);
+  background-color: rgba(30, 30, 47, 0.7); /* Darker header background */
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(5px);
+}
+/* Ensure rounded corners apply correctly with sticky header */
+.table-responsive .dashboard th:first-child { border-top-left-radius: var(--border-radius-small); }
+.table-responsive .dashboard th:last-child { border-top-right-radius: var(--border-radius-small); }
+
+
+.dashboard td {
+  color: var(--text-color);
+}
+
+.dashboard tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard tbody tr {
+    transition: background-color var(--transition-speed);
+}
+
+.dashboard tbody tr:hover {
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.etherscan-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.etherscan-link:hover {
+  color: var(--primary-color-dark);
+  text-decoration: underline;
+}
+
+.external-link-icon {
+    font-size: 1em;
+    vertical-align: middle;
+}
+
+.no-hash, .no-products {
+    color: var(--subtle-text-color);
+    font-style: italic;
+    font-size: 1em;
+    text-align: center;
+    padding: 40px; /* More padding */
+}
+
+/* --- Placeholder Content Styling --- */
+.card ul.placeholder-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 15px;
+}
+.card ul.placeholder-list li {
+    margin-bottom: 12px; /* Increased spacing */
+    padding-left: 28px;
+    position: relative;
+    color: var(--subtle-text-color);
+    font-size: 1rem; /* Slightly larger */
+}
+.card ul.placeholder-list li::before {
+    content: "➔";
+    color: var(--primary-color);
+    position: absolute;
+    left: 0;
+    top: 2px; /* Adjust vertical alignment */
+    font-size: 1.1em;
+}
+
+.card h4 {
+    color: var(--secondary-color);
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-size: 1.2rem; /* Larger placeholder title */
+}
+
+
+/* --- Loading Spinner --- */
+.spinner {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 60px;
+    color: var(--subtle-text-color);
+}
+
+.loading-container .spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid rgba(46, 204, 113, 0.3);
+    border-top-color: var(--primary-color);
+    margin: 0 auto 20px auto;
+}
+.loading-container p {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+
+/* --- Animations --- */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.6s var(--transition-speed) forwards;
+    opacity: 0;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- Footer --- */
+.app-footer {
+  text-align: center;
+  padding: 30px;
+  margin-top: 50px;
+  font-size: 0.9rem;
+  color: var(--subtle-text-color);
+  border-top: 1px solid var(--border-color);
+  background-color: var(--card-background);
+}
+.button-action {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-transform: uppercase;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.button-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Specific styling for the 'Ship' action (Farmer) */
+.button-ship {
+    background-color: #f39c12; /* Orange for shipping/transit */
+    color: #1a1a2e;
+}
+
+.button-ship:hover {
+    background-color: #e67e22;
+}
+
+/* Specific styling for the 'Receive' action (Wholesaler) */
+.button-receive {
+    background-color: var(--primary-color); /* Primary Green for confirmation */
+    color: white;
+}
+
+.button-receive:hover {
+    background-color: var(--primary-color-dark);
+}
+
+.no-action-label {
+    font-size: 0.9em;
+    color: var(--subtle-text-color);
+    font-style: italic;
+}
+
+
+/* --- State Badges (Status Column) --- */
+
+.state-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 120px; /* Ensure badge width is consistent */
+    text-align: center;
+}
+
+/* State 0: Harvested */
+.state-0 {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+/* State 1: Shipped To Wholesaler (In Transit) */
+.state-1 {
+    background-color: rgba(243, 156, 18, 0.2);
+    color: #f39c12; /* Orange */
+    border: 1px solid #f39c12;
+}
+
+/* State 2: Received By Wholesaler */
+.state-2 {
+    background-color: rgba(52, 152, 219, 0.2);
+    color: #3498db; /* Blue */
+    border: 1px solid #3498db;
+}
+
+/* Add more states here for Phase 2: */
+/* State 3: Processed */
+.state-3 {
+    background-color: rgba(142, 68, 173, 0.2);
+    color: var(--secondary-color); /* Purple */
+    border: 1px solid var(--secondary-color);
+}
+
+/* State 6: For Sale */
+.state-6 {
+    background-color: rgba(26, 188, 156, 0.2);
+    color: #1abc9c; /* Turquoise */
+    border: 1px solid #1abc9c;
+}
+
+/* Default/Unknown */
+.state-unknown {
+    background-color: rgba(150, 150, 150, 0.1);
+    color: #a0a0a0;
+    border: 1px solid #a0a0a0;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) {
+    .role-login-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+}
+
+
+@media (max-width: 768px) {
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 1.6rem; }
+  .hero-section h1 { font-size: 2.5rem; }
+  .subtitle { font-size: 1.1rem; }
+
+  .app-header {
+    flex-direction: column;
+    padding: 15px 20px;
+    gap: 15px;
+    position: static; /* Header not sticky on mobile */
+  }
+  .header-right {
+      width: 100%;
+      justify-content: space-between;
+  }
+  .logout-button {
+      padding: 8px 15px;
+  }
+
+  main.container {
+    padding: 20px;
+  }
+  .card {
+    padding: 25px;
+    border-radius: var(--border-radius-small);
+  }
+  .card h2 {
+    font-size: 1.4rem;
+  }
+  .dashboard th, .dashboard td {
+    padding: 14px 12px;
+  }
+  .button-primary, .connect-button, .logout-button, .back-button { /* Apply mobile styles to back-button too */
+    font-size: 0.9rem;
+    padding: 10px 16px;
+  }
+  .connect-main-button {
+      padding: 12px 25px;
+  }
+  .role-card .button-primary {
+      padding: 10px 20px;
+  }
+}
+
