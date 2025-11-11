@@ -3,23 +3,28 @@ const { ethers } = require("hardhat"); // Import ethers from Hardhat
 async function main() {
   console.log("Fetching the deployer wallet...");
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contract with the account:", deployer.address);
+  console.log("Deploying contracts with the account:", deployer.address);
   
-  console.log("Deploying contract...");
+  // Deploy RoleManager first
+  console.log("Deploying RoleManager contract...");
+  const RoleManager = await ethers.getContractFactory("RoleManager");
+  const roleManager = await RoleManager.deploy();
+  await roleManager.waitForDeployment();
+  const roleManagerAddress = await roleManager.getAddress();
+  console.log("✅ RoleManager deployed to:", roleManagerAddress);
 
-  // Get the contract factory
+  // Deploy SupplyChain
+  console.log("\nDeploying SupplyChain contract...");
   const SupplyChain = await ethers.getContractFactory("SupplyChain");
-
-  // Start the deployment
-  const supplyChain = await SupplyChain.deploy();
-
-  // Wait for the deployment to be confirmed
+  const supplyChain = await SupplyChain.deploy(roleManagerAddress);
   await supplyChain.waitForDeployment();
+  const supplyChainAddress = await supplyChain.getAddress();
+  console.log("✅ SupplyChain deployed to:", supplyChainAddress);
 
-  // Get the contract address
-  const contractAddress = await supplyChain.getAddress();
-
-  console.log("✅ Contract deployed to:", contractAddress);
+  // Log both addresses for easy config update
+  console.log("\n📝 Contract Addresses Summary:");
+  console.log("RoleManager:", roleManagerAddress);
+  console.log("SupplyChain:", supplyChainAddress);
 }
 
 // Standard pattern for running the main function

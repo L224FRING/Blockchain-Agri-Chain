@@ -5,8 +5,8 @@ import { ethers } from 'ethers';
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 
 // Import Views
-import Home from './Home'; // Import the new Home component
-// Import placeholder/actual views for roles
+// Import views
+import Auth from './components/Auth';
 import FarmerView from './FarmerView';
 import WholesalerView from './WholesalerView';
 import RetailerView from './RetailerView';
@@ -51,22 +51,12 @@ function App() {
     }
   };
 
-  // --- Login Handler (Called from Home component) ---
-  // Attempts to connect wallet and then sets the role state
-  const handleLogin = async (role) => {
-    console.log(`Attempting login as ${role}...`);
-    const walletAddress = await connectWallet(); // Connect wallet first
-    if (walletAddress) {
-      // Only set the role if wallet connection was successful
-      setLoggedInRole(role);
-      console.log(`Successfully logged in as ${role} with wallet ${walletAddress}`);
-      // Product fetching will trigger via useEffect dependency change
-    } else {
-      console.log("Wallet connection failed or was rejected, staying on Home page.");
-      // Ensure user stays logged out if connection fails
-      setLoggedInRole(null);
-      setConnectedWallet(null);
-    }
+  // --- Login Handler (Called from Auth component) ---
+  // Sets both role and wallet address after authentication
+  const handleLogin = async (role, walletAddress) => {
+    console.log(`Authenticated as ${role} with wallet ${walletAddress}`);
+    setLoggedInRole(role);
+    setConnectedWallet(walletAddress);
   };
 
   // --- Logout Handler ---
@@ -268,9 +258,9 @@ function App() {
 
   // --- Renders the main content based on login state ---
   const renderContent = () => {
-    // If no role is logged in (user is logged out), show the Home page
+    // If no role is logged in (user is logged out), show the Auth page
     if (!loggedInRole) {
-      return <Home onLogin={handleLogin} />; // Pass handleLogin function as a prop
+      return <Auth onLogin={handleLogin} />; // Pass handleLogin function as a prop
     }
 
     // If a role is logged in, show the corresponding view component
@@ -288,9 +278,9 @@ function App() {
         // Pass necessary data and functions down to the ConsumerView (placeholder)
         return <ConsumerView products={products} loading={loading} connectedWallet={connectedWallet} onLogout={handleLogout} />;
       default:
-        // Fallback to Home if the role state is somehow invalid
+        // Fallback to Auth if the role state is somehow invalid
         console.error("Invalid loggedInRole:", loggedInRole);
-        return <Home onLogin={handleLogin} />;
+        return <Auth onLogin={handleLogin} />;
     }
   };
 

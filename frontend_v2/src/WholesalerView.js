@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import Dashboard from './Dashboard';
-// CRITICAL IMPORT: Ensure STAKEHOLDER_ADDRESSES is imported
-import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS, STAKEHOLDER_ADDRESSES } from './config'; 
+// Use AUTHORIZED_ADDRESSES to get the Wholesaler placeholder address
+import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS, AUTHORIZED_ADDRESSES } from './config'; 
 import './App.css'; 
 
 // Enum values must match the contract 
@@ -15,7 +15,7 @@ function WholesalerView({ products, loading, connectedWallet, fetchProducts, onL
 
     // Get the address this component expects to act as (the placeholder address)
     // CRITICAL: Ensure we use the lowercase placeholder address for filtering
-    const WHOSESALER_ROLE_ADDRESS = STAKEHOLDER_ADDRESSES.Wholesaler.toLowerCase();
+    const WHOSESALER_ROLE_ADDRESS = (AUTHORIZED_ADDRESSES.Wholesaler && AUTHORIZED_ADDRESSES.Wholesaler[0].toLowerCase()) || '';
     
     // --- Filtering Logic FIX ---
     // Show products owned by the placeholder Wholesaler address 
@@ -49,26 +49,45 @@ function WholesalerView({ products, loading, connectedWallet, fetchProducts, onL
             const signer = await provider.getSigner();
             const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
 
-            // Transaction 1: Update the state to RECEIVED_BY_WHOLESALER
-            setActionMessage(`Waiting for signature (Product ${productId})...`);
-            
-            // The connected wallet signs this transaction. If connectedWallet == WHOSESALER_ROLE_ADDRESS, onlyOwner passes.
-            const tx = await contract.updateProductState(productId, RECEIVED_BY_WHOLESALER_STATE);
-            
-            setActionMessage(`Transaction submitted. Waiting for confirmation... TxHash: ${tx.hash.substring(0, 10)}...`);
-            await tx.wait(); // Wait for mining confirmation
+            setActionMessage(`Checking for pending transfer proposal for Product ${productId}...`);
 
-            setActionMessage(`✅ Success! Product ${productId} received. Status updated.`);
-            fetchProducts(); // Refresh dashboard data
+            // Check if there's a pending transfer proposal for this product
+            let proposal = null;
+            try {
+                proposal = await contract.transferProposals(productId);
+            } catch (e) {
+                console.warn('Could not read transferProposals:', e);
+            }
+
+            const targetAddress = proposal && proposal.target ? proposal.target.toLowerCase() : null;
+            const wholesalerMatches = targetAddress && (targetAddress === connectedWallet.toLowerCase());
+
+            // If there's a matching proposal that hasn't been executed and wholesaler hasn't confirmed, call wholesalerConfirmTransfer
+            if (proposal && wholesalerMatches && !proposal.wholesalerConfirmed && !proposal.executed) {
+                setActionMessage('Found pending proposal. Sending confirmation to accept transfer...');
+                const tx = await contract.wholesalerConfirmTransfer(productId);
+                setActionMessage('Confirmation transaction sent. Waiting for confirmation...');
+                await tx.wait();
+                setActionMessage(`✅ Success! Transfer for Product ${productId} accepted and executed.`);
+                fetchProducts();
+            } else {
+                // Fallback: update state to RECEIVED_BY_WHOLESALER as before
+                setActionMessage(`No pending proposal found — updating state to 'Received' (Product ${productId})...`);
+                const tx = await contract.updateProductState(productId, RECEIVED_BY_WHOLESALER_STATE);
+                setActionMessage('Transaction submitted. Waiting for confirmation...');
+                await tx.wait();
+                setActionMessage(`✅ Success! Product ${productId} received. Status updated.`);
+                fetchProducts();
+            }
 
         } catch (error) {
             console.error("Wholesaler Action Error:", error);
             if (error.code === 4001) {
                 setActionMessage('Error: Transaction rejected by user.');
-            } else if (error.message.includes("Only the current owner")) {
+            } else if (error.message && error.message.includes("Only the current owner")) {
                  setActionMessage(`Error: Authorization Failed. Connected wallet is not the current product owner.`);
             } else {
-                 setActionMessage(`Error updating state. Check console.`);
+                 setActionMessage(`Error performing wholesaler action. Check console.`);
             }
         } finally {
             setActionLoading(false);

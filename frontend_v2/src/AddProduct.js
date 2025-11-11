@@ -10,33 +10,48 @@ function AddProduct({ onProductAdded }) {
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('kg');
     const [price, setPrice] = useState('');
+    const [expiryDate, setExpiryDate] = useState('');
     
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
     // Utility to parse logs and find the emitted ID
     const getProductIdFromReceipt = (receipt) => {
-        // Create an interface instance using the ABI
-        const contractInterface = new ethers.Interface(SUPPLY_CHAIN_ABI);
-        
-        // Loop through all logs in the receipt
-        for (const log of receipt.logs) {
-            try {
-                // Try to parse the log data using the contract interface
-                const parsedLog = contractInterface.parseLog(log);
-                
-                // Check if the event name matches the one we're looking for
-                if (parsedLog && parsedLog.name === 'ProductAdded') {
-                    // The Product ID is the first argument in the event data (id)
-                    const id = parsedLog.args.id;
-                    // Return the ID as a standard JavaScript number
-                    return Number(id);
-                }
-            } catch (e) {
-                // Ignore logs that don't belong to this contract interface
+        try {
+            // Create an interface instance using the ABI
+            const contractInterface = new ethers.Interface(SUPPLY_CHAIN_ABI);
+            
+            // The receipt.logs array contains all logs from the transaction
+            if (!receipt || !receipt.logs || receipt.logs.length === 0) {
+                console.warn('No logs found in receipt');
+                return null;
             }
+            
+            // Loop through all logs in the receipt
+            for (const log of receipt.logs) {
+                try {
+                    // Try to parse the log using the contract interface
+                    const parsedLog = contractInterface.parseLog(log);
+                    
+                    // Check if the event name matches ProductAdded
+                    if (parsedLog && parsedLog.name === 'ProductAdded') {
+                        // Extract the product ID - it's the first indexed parameter
+                        // In ethers v6, parsedLog.args is an array-like object
+                        const id = parsedLog.args[0] || parsedLog.args['id'];
+                        console.log('ProductAdded event found, extracted ID:', id);
+                        return Number(id);
+                    }
+                } catch (e) {
+                    // Ignore logs that don't match this contract interface
+                    console.debug('Could not parse log:', e.message);
+                }
+            }
+            console.warn('ProductAdded event not found in logs');
+            return null;
+        } catch (error) {
+            console.error('Error parsing receipt:', error);
+            return null;
         }
-        return null; // Return null if ID not found
     };
 
 
@@ -74,9 +89,12 @@ function AddProduct({ onProductAdded }) {
             const priceInUnits = ethers.parseUnits(price, PRICE_DECIMALS); 
             const quantityInUnits = ethers.parseUnits(quantity, PRICE_DECIMALS); 
 
+            // Convert expiry date to Unix timestamp
+            const expiryTimestamp = Math.floor(new Date(expiryDate).getTime() / 1000);
+            
             // 3. Transaction 1: Add the product
             setMessage('Waiting for addProduct transaction signature...');
-            const tx = await contract.addProduct(name, origin, quantityInUnits, unit, priceInUnits);
+            const tx = await contract.addProduct(name, origin, quantityInUnits, unit, priceInUnits, expiryTimestamp);
             
             setMessage(`Transaction submitted. Waiting for confirmation... TxHash: ${tx.hash.substring(0, 10)}...`);
             const receipt = await tx.wait(); // Wait for mining confirmation
@@ -84,14 +102,27 @@ function AddProduct({ onProductAdded }) {
             const realTxHash = receipt.hash;
             
             // CRITICAL FIX: Get the exact product ID from the log
-            const newProductId = getProductIdFromReceipt(receipt);
+            let newProductId = getProductIdFromReceipt(receipt);
+            
+            // Fallback: if we couldn't extract product ID from logs, query the contract
             if (!newProductId) {
-                 throw new Error("Failed to retrieve new Product ID from transaction receipt.");
+                console.warn('Could not extract product ID from logs, using fallback method...');
+                try {
+                    // Get the latest product count to determine the new product ID
+                    const productCount = await contract.productCount();
+                    newProductId = Number(productCount);
+                    console.log('Using fallback product ID:', newProductId);
+                } catch (fallbackError) {
+                    console.error('Fallback method also failed:', fallbackError);
+                    throw new Error("Failed to retrieve new Product ID from transaction receipt or via fallback method.");
+                }
             }
 
             // 4. Final step: Refresh the dashboard data
             // CRITICAL FIX: Pass BOTH the hash AND the ID to the parent fetch function
-            await onProductAdded(realTxHash, newProductId); 
+            if (onProductAdded) {
+                await onProductAdded(realTxHash, newProductId);
+            }
 
             setMessage(`✅ Success! Product ID ${newProductId} added. TxHash: ${realTxHash.substring(0, 10)}... Dashboard refreshed.`);
             
@@ -173,6 +204,16 @@ function AddProduct({ onProductAdded }) {
                         value={price} 
                         onChange={(e) => setPrice(e.target.value)} 
                         min="1"
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Expiry Date:</label>
+                    <input 
+                        type="date" 
+                        value={expiryDate} 
+                        onChange={(e) => setExpiryDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]} // Set minimum date to today
                     />
                 </div>
                 {/* END NEW FIELDS */}

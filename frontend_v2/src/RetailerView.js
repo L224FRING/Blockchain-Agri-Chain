@@ -1,7 +1,7 @@
 import React from 'react';
 import Dashboard from './Dashboard'; // Re-use the Dashboard component
-// Import stakeholder addresses to identify the Wholesaler
-import { STAKEHOLDER_ADDRESSES, STATE_MAPPING } from './config';
+// Import authorized addresses to identify the Wholesaler
+import { AUTHORIZED_ADDRESSES, STATE_MAPPING } from './config';
 import './App.css'; // Re-use App.css for styling
 
 // Define relevant states for Retailer visibility:
@@ -13,7 +13,7 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
   // --- Filtering Logic: Show products relevant to the Retailer's perspective ---
   const retailerVisibleProducts = products.filter(p => {
     const ownerLower = p.owner.toLowerCase();
-    const wholesalerLower = STAKEHOLDER_ADDRESSES.Wholesaler.toLowerCase();
+  const wholesalerLower = (AUTHORIZED_ADDRESSES.Wholesaler && AUTHORIZED_ADDRESSES.Wholesaler[0].toLowerCase()) || '';
     const connectedLower = connectedWallet.toLowerCase(); // The wallet logged in AS Retailer
 
     // Condition 1: Product is owned by the currently logged-in Retailer (regardless of state, they own it)

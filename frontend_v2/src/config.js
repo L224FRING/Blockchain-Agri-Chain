@@ -1,13 +1,254 @@
-// --- CONFIGURATION FOR V2 CONTRACT DEPLOYED TO SEPOLIA ---
+// --- CONFIGURATION FOR V2 CONTRACTS DEPLOYED TO SEPOLIA ---
 
-// 1. Your NEW Deployed Contract Address (from the last deployment run)
-export const SUPPLY_CHAIN_ADDRESS = "0x9e11e508908f147e3d4d6B297FCC6d56940f6Bd6";
+// Contract Addresses
+export const SUPPLY_CHAIN_ADDRESS = "0x5fB4045F2242514a2b4872894Daf0eb95B28CcDF";
+export const ROLE_MANAGER_ADDRESS = "0xdFCE285bdD4c6a6b2b3901345742ef9c5b6c9074";
+
+// Role Manager ABI
+export const ROLE_MANAGER_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "username",
+        "type": "string"
+      }
+    ],
+    "name": "getAddressByUsername",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getRole",
+    "outputs": [
+      {
+        "internalType": "enum RoleManager.Role",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getRoleAsString",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum RoleManager.Role",
+        "name": "role",
+        "type": "uint8"
+      }
+    ],
+    "name": "getRoleCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUsername",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum RoleManager.Role",
+        "name": "role",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "username",
+        "type": "string"
+      }
+    ],
+    "name": "registerUser",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "revokeRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum RoleManager.Role",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "name": "roleCounts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userRoles",
+    "outputs": [
+      {
+        "internalType": "enum RoleManager.Role",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "usernames",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
 
 
-export const STAKEHOLDER_ADDRESSES = {
-    Wholesaler: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B", 
-    Retailer: "0xCA35b7d915458EF540aDe6068dFe2F44E8fa733c",  
-    Consumer: "0x1b3Cb81E51014b2b1337C1D1Cf9f957415F0578D"
+// Authorized addresses for each role
+export const AUTHORIZED_ADDRESSES = {
+    Farmer: [
+        "0x1234567890123456789012345678901234567890",
+        "0x2345678901234567890123456789012345678901",
+        
+        "0xe7015C0968F8d08a03C9Be042496367954E4C859"
+    ],
+    Wholesaler: [
+        "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
+    ],
+    Retailer: [
+        "0xCA35b7d915458EF540aDe6068dFe2F44E8fa733c"
+    ],
+    Consumer: [
+        "0x1b3Cb81E51014b2b1337C1D1Cf9f957415F0578D"
+    ]
+};
+
+// Helper function to get role by address
+export const getRoleByAddress = (address) => {
+    if (!address) return null;
+    address = address.toLowerCase();
+    
+    for (const [role, addresses] of Object.entries(AUTHORIZED_ADDRESSES)) {
+        if (addresses.map(addr => addr.toLowerCase()).includes(address.toLowerCase())) {
+            return role;
+        }
+    }
+    return null;
 };
 
 // 3. Product State Enum Mapping
@@ -26,23 +267,15 @@ export const STATE_MAPPING = {
 // 4. Your Contract's ABI (from the updated SupplyChain.json)
 export const SUPPLY_CHAIN_ABI = [
   {
-    "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "txHash",
-        "type": "string"
+        "internalType": "address",
+        "name": "_roleManager",
+        "type": "address"
       }
     ],
-    "name": "HashUpdated",
-    "type": "event"
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
     "anonymous": false,
@@ -84,6 +317,7 @@ export const SUPPLY_CHAIN_ABI = [
         "type": "uint256"
       },
       {
+        "indexed": false,
         "internalType": "enum SupplyChain.State",
         "name": "initialState",
         "type": "uint8"
@@ -133,6 +367,25 @@ export const SUPPLY_CHAIN_ABI = [
         "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "string",
+        "name": "txHash",
+        "type": "string"
+      }
+    ],
+    "name": "HashUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
         "indexed": true,
         "internalType": "address",
         "name": "from",
@@ -146,6 +399,87 @@ export const SUPPLY_CHAIN_ABI = [
       }
     ],
     "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "productId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "by",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "role",
+        "type": "string"
+      }
+    ],
+    "name": "TransferConfirmed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "productId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "TransferExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "productId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "toUsername",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "toAddress",
+        "type": "address"
+      }
+    ],
+    "name": "TransferProposed",
     "type": "event"
   },
   {
@@ -174,6 +508,11 @@ export const SUPPLY_CHAIN_ABI = [
         "internalType": "uint256",
         "name": "_pricePerUnit",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_expiryDate",
+        "type": "uint256"
       }
     ],
     "name": "addProduct",
@@ -185,121 +524,6 @@ export const SUPPLY_CHAIN_ABI = [
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateProductHash",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum SupplyChain.State",
-        "name": "_newState",
-        "type": "uint8"
-      }
-    ],
-    "name": "updateProductState",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "getProductById",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "id",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "origin",
-            "type": "string"
-          },
-          {
-            "internalType": "address",
-            "name": "owner",
-            "type": "address"
-          },
-          {
-            "internalType": "string",
-            "name": "transactionHash",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "quantity",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "unit",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "pricePerUnit",
-            "type": "uint256"
-          },
-          {
-            "internalType": "enum SupplyChain.State",
-            "name": "currentState",
-            "type": "uint8"
-          }
-        ],
-        "internalType": "struct SupplyChain.Product",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -352,6 +576,21 @@ export const SUPPLY_CHAIN_ABI = [
             "internalType": "enum SupplyChain.State",
             "name": "currentState",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiryDate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creationTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastUpdateTimestamp",
+            "type": "uint256"
           }
         ],
         "internalType": "struct SupplyChain.Product[]",
@@ -363,13 +602,31 @@ export const SUPPLY_CHAIN_ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "productCount",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_id",
         "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "wholesalerUsername",
+        "type": "string"
+      }
+    ],
+    "name": "proposeTransferToWholesaler",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "roleManager",
+    "outputs": [
+      {
+        "internalType": "contract IRoleManager",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -379,59 +636,106 @@ export const SUPPLY_CHAIN_ABI = [
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_id",
         "type": "uint256"
       }
     ],
-    "name": "products",
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "transferProposals",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "id",
+        "name": "productId",
         "type": "uint256"
       },
       {
-        "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "origin",
-        "type": "string"
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
       },
       {
         "internalType": "address",
-        "name": "owner",
+        "name": "target",
         "type": "address"
       },
       {
         "internalType": "string",
-        "name": "transactionHash",
+        "name": "targetUsername",
         "type": "string"
       },
       {
+        "internalType": "bool",
+        "name": "farmerConfirmed",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "wholesalerConfirmed",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "executed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
-        "name": "quantity",
+        "name": "_id",
         "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "unit",
-        "type": "string"
-      },
+      }
+    ],
+    "name": "updateProductHash",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "internalType": "uint256",
-        "name": "pricePerUnit",
+        "name": "_id",
         "type": "uint256"
       },
       {
         "internalType": "enum SupplyChain.State",
-        "name": "currentState",
+        "name": "_newState",
         "type": "uint8"
       }
     ],
-    "stateMutability": "view",
+    "name": "updateProductState",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "wholesalerConfirmTransfer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];

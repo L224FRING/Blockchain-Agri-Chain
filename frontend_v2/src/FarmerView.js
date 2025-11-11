@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import AddProduct from './AddProduct';
 import Dashboard from './Dashboard';
-import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS, STAKEHOLDER_ADDRESSES } from './config';
+import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS, AUTHORIZED_ADDRESSES } from './config';
 import './App.css'; 
 
 // Enum values must match the contract (State.Harvested = 0, State.ShippedToWholesaler = 1)
@@ -25,47 +25,34 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
     );
 
 
-    // --- Core Farmer Action: Ship to Wholesaler (Two Transactions) ---
-    const shipToWholesaler = async (productId) => {
+    // --- Core Farmer Action: Propose transfer to Wholesaler by username ---
+    // onAction now passes (productId, wholesalerUsername)
+    const shipToWholesaler = async (productId, wholesalerUsername) => {
         if (!window.ethereum) return setActionMessage("Error: MetaMask not found.");
-        
-        // Define the next owner's address (Wholesaler placeholder from config.js)
-        const newOwnerAddress = STAKEHOLDER_ADDRESSES.Wholesaler;
-        if (!newOwnerAddress) return setActionMessage("Error: Wholesaler address not configured.");
+        if (!wholesalerUsername || wholesalerUsername.length === 0) return setActionMessage('Error: Please provide a wholesaler username.');
 
         setActionLoading(true);
-        setActionMessage(`Shipping Product ID ${productId} to Wholesaler (${newOwnerAddress.substring(0,6)}...)...`);
+        setActionMessage(`Proposing transfer for Product ID ${productId} to wholesaler '${wholesalerUsername}'...`);
 
         try {
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
             const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
 
-            // 1. Transaction 1: Update State to SHIPPED_TO_WHOLESALER
-            setActionMessage(`Step 1/2: Waiting for signature to update state...`);
-            
-            const tx1 = await contract.updateProductState(productId, SHIPPED_TO_WHOLESALER_STATE);
-            
-            setActionMessage(`State transaction submitted. Waiting for confirmation (1/2)...`);
-            await tx1.wait(); 
+            // Call the new proposeTransferToWholesaler which resolves username -> address on-chain
+            const tx = await contract.proposeTransferToWholesaler(productId, wholesalerUsername);
+            setActionMessage('Transaction submitted. Waiting for confirmation...');
+            await tx.wait();
 
-            // 2. Transaction 2: Transfer Ownership
-            setActionMessage(`Step 2/2: Waiting for signature to transfer ownership...`);
-
-            const tx2 = await contract.transferOwnership(productId, newOwnerAddress);
-
-            setActionMessage(`Ownership transaction submitted. Waiting for confirmation (2/2)... TxHash: ${tx2.hash.substring(0, 10)}...`);
-            await tx2.wait(); 
-
-            setActionMessage(`✅ Success! Product ${productId} shipped and ownership transferred to Wholesaler.`);
+            setActionMessage(`✅ Proposal submitted for Product ${productId} to '${wholesalerUsername}'. Waiting for wholesaler confirmation.`);
             fetchProducts(); // Refresh dashboard data
 
         } catch (error) {
-            console.error("Farmer Ship Error:", error);
-            if (error.code === 4001) {
+            console.error("Propose Transfer Error:", error);
+            if (error?.code === 4001) {
                 setActionMessage('Error: Transaction rejected by user.');
             } else {
-                setActionMessage(`Error shipping product. Check console.`);
+                setActionMessage(`Error proposing transfer. See console for details.`);
             }
         } finally {
             setActionLoading(false);
@@ -93,7 +80,10 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
                 {/* Left Column: Add Product Form (Phase 1) */}
                 <div className="card add-product-card">
                     <h2><span role="img" aria-label="seedling">➕</span> Add New Product</h2>
-                    <AddProduct onProductAdded={fetchProducts} />
+                    <AddProduct onProductAdded={(hash, productId) => {
+                        console.log(`Product added: hash=${hash}, productId=${productId}`);
+                        fetchProducts();
+                    }} />
                 </div>
 
                 {/* Right Column: Dashboard showing products ready for shipping */}

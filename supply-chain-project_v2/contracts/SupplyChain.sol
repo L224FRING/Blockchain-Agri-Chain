@@ -7,6 +7,12 @@ pragma solidity ^0.8.20;
 // if you haven't used console.log before with hardhat
 import "hardhat/console.sol";
 
+// Minimal interface for RoleManager to resolve usernames and roles
+interface IRoleManager {
+    function getAddressByUsername(string memory username) external view returns (address);
+    function getRoleAsString(address user) external view returns (string memory);
+}
+
 contract SupplyChain {
 
     // Define the possible states a product can be in
@@ -32,14 +38,37 @@ contract SupplyChain {
         string unit;            // e.g., "kg", "crates", "liters"
         uint pricePerUnit;      // Price in smallest unit (e.g., Wei for ETH, or cents)
         State currentState;     // Current stage in the supply chain
-        // uint creationTimestamp; // Timestamp of creation
-        // uint lastUpdateTimestamp; // Timestamp of last update
+        uint expiryDate;        // Unix timestamp for product expiry
+        uint creationTimestamp; // Timestamp of creation
+        uint lastUpdateTimestamp; // Timestamp of last update
     }
 
     // Mapping from product ID to Product struct
     mapping(uint => Product) public products;
     // Counter for product IDs, starting from 1
     uint public productCount;
+
+    // Role manager reference for resolving usernames -> addresses
+    IRoleManager public roleManager;
+
+    // Transfer proposal struct: a farmer proposes transfer to a wholesaler identified by username.
+    struct TransferProposal {
+        uint productId;
+        address proposer; // farmer
+        address target; // resolved wholesaler address
+        string targetUsername; // wholesaler username used for lookup
+        bool farmerConfirmed;
+        bool wholesalerConfirmed;
+        bool executed;
+    }
+
+    // One active proposal per product
+    mapping(uint => TransferProposal) public transferProposals;
+
+    // Events for the proposal lifecycle
+    event TransferProposed(uint indexed productId, address indexed from, string toUsername, address toAddress);
+    event TransferConfirmed(uint indexed productId, address indexed by, string role);
+    event TransferExecuted(uint indexed productId, address indexed from, address indexed to);
 
     // --- Events ---
     // Emitted when a product is first added
@@ -74,6 +103,12 @@ contract SupplyChain {
 
     // --- Functions ---
 
+    // Set the RoleManager address at deployment
+    constructor(address _roleManager) {
+        require(_roleManager != address(0), "RoleManager address required");
+        roleManager = IRoleManager(_roleManager);
+    }
+
     /**
      * @dev Adds a new product (called by Farmer).
      * Initializes state to Harvested.
@@ -84,13 +119,15 @@ contract SupplyChain {
         string memory _origin,
         uint _quantity,
         string memory _unit,
-        uint _pricePerUnit
+        uint _pricePerUnit,
+        uint _expiryDate
     ) public returns (uint) {
         require(_quantity > 0, "Quantity must be greater than zero");
         require(_pricePerUnit > 0, "Price must be greater than zero"); // Or allow free items?
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_origin).length > 0, "Origin cannot be empty");
         require(bytes(_unit).length > 0, "Unit cannot be empty");
+        require(_expiryDate > block.timestamp, "Expiry date must be in the future");
 
         productCount++;
         uint newId = productCount;
@@ -104,9 +141,10 @@ contract SupplyChain {
             quantity: _quantity,
             unit: _unit,
             pricePerUnit: _pricePerUnit,
-            currentState: State.Harvested // Initial state
-            // creationTimestamp: block.timestamp,
-            // lastUpdateTimestamp: block.timestamp
+            currentState: State.Harvested, // Initial state
+            expiryDate: _expiryDate,
+            creationTimestamp: block.timestamp,
+            lastUpdateTimestamp: block.timestamp
         });
 
         // UPDATED console.log
@@ -122,6 +160,78 @@ contract SupplyChain {
 
         emit ProductAdded(newId, _name, msg.sender, _quantity, _unit, _pricePerUnit, State.Harvested);
         return newId; // Return the ID so frontend knows which product to update hash for
+    }
+
+    /**
+     * @dev Farmer proposes transfer of their product to a wholesaler (by username).
+     * Farmer must be the current owner. Wholesaler must exist and be of role Wholesaler.
+     * Both farmer and wholesaler must confirm before the transfer is executed.
+     */
+    function proposeTransferToWholesaler(uint _id, string memory wholesalerUsername) public onlyOwner(_id) productExists(_id) {
+        require(bytes(wholesalerUsername).length > 0, "Wholesaler username required");
+        require(products[_id].currentState == State.Harvested || products[_id].currentState == State.ReceivedByWholesaler || products[_id].currentState == State.Processed, "Product not in transferrable state");
+        TransferProposal storage p = transferProposals[_id];
+        require(!p.executed, "Existing proposal already executed");
+        require(p.proposer == address(0) || (p.proposer != address(0) && !p.farmerConfirmed && !p.wholesalerConfirmed), "Active proposal exists");
+
+        address target = roleManager.getAddressByUsername(wholesalerUsername);
+        require(target != address(0), "Wholesaler username not found");
+        string memory roleStr = roleManager.getRoleAsString(target);
+        require(keccak256(bytes(roleStr)) == keccak256(bytes("Wholesaler")), "Target must be a Wholesaler");
+
+        // Create proposal; farmer implicitly confirms by proposing
+        transferProposals[_id] = TransferProposal({
+            productId: _id,
+            proposer: msg.sender,
+            target: target,
+            targetUsername: wholesalerUsername,
+            farmerConfirmed: true,
+            wholesalerConfirmed: false,
+            executed: false
+        });
+
+        emit TransferProposed(_id, msg.sender, wholesalerUsername, target);
+        emit TransferConfirmed(_id, msg.sender, "Farmer");
+    }
+
+    /**
+     * @dev Called by the targeted wholesaler to confirm the proposed transfer.
+     * Once both farmer and wholesaler have confirmed, the transfer is executed.
+     */
+    function wholesalerConfirmTransfer(uint _id) public productExists(_id) {
+        TransferProposal storage p = transferProposals[_id];
+        require(p.proposer != address(0), "No active proposal");
+        require(!p.executed, "Proposal already executed");
+        require(p.target == msg.sender, "Only the targeted wholesaler can confirm");
+
+        p.wholesalerConfirmed = true;
+        emit TransferConfirmed(_id, msg.sender, "Wholesaler");
+
+        // If both confirmed execute
+        if (p.farmerConfirmed && p.wholesalerConfirmed) {
+            _executeTransfer(_id);
+        }
+    }
+
+    function _executeTransfer(uint _id) internal {
+        TransferProposal storage p = transferProposals[_id];
+        require(p.proposer != address(0), "No active proposal");
+        require(p.farmerConfirmed && p.wholesalerConfirmed, "Both parties must confirm");
+        require(!p.executed, "Already executed");
+
+        address oldOwner = products[_id].owner;
+        address newOwner = p.target;
+
+        products[_id].owner = newOwner;
+        products[_id].currentState = State.ShippedToWholesaler;
+        products[_id].lastUpdateTimestamp = block.timestamp;
+
+        p.executed = true;
+
+        emit TransferExecuted(_id, oldOwner, newOwner);
+        emit OwnershipTransferred(_id, oldOwner, newOwner);
+
+        // keep proposal record (executed = true) for auditing; frontend can clear it if desired
     }
 
     /**
