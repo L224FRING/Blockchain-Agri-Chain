@@ -4,13 +4,49 @@ import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 
 const PRICE_DECIMALS = 0; 
 
+// Based on the provided food_shelf_life.pdf document.
+// Using the lower-bound refrigerator storage time for safety.
+const SHELF_LIFE_DATA = {
+    // Produce
+    'Apples': 30, // 1-2 months
+    'Citrus Fruits': 21, // 3 weeks
+    'Berries': 2, // 2-3 days
+    'Lettuce, bagged': 3, // 3-5 days
+    'Root Vegetables': 14, // 2-3 weeks
+    
+    // Dairy & Eggs
+    'Eggs, in shell': 21, // 3 to 5 weeks
+    'Milk': 7, // 1 week
+    'Yogurt': 7, // 7 to 14 days
+    'Hard Cheese': 21, // 3 to 4 weeks (opened)
+    'Soft Cheese': 7, // 1 to 2 weeks
+    
+    // Raw Meat
+    'Ground Meat': 1, // 1 to 2 days
+    'Steaks, Roasts, Chops': 3, // 3 to 5 days
+    
+    // Raw Poultry
+    'Chicken or Turkey, Whole': 1, // 1 to 2 days
+    'Chicken or Turkey, parts': 1, // 1 to 2 days
+    
+    // Raw Seafood
+    'Fish': 1, // 1 to 2 days
+    'Shellfish': 1, // 1 to 2 days
+    
+    // Pantry / Other (as a fallback)
+    'Canned Goods (Low-Acid)': 730, // 2 to 5 years
+    'Dried Goods (Pasta/Rice)': 730, // 2 years
+};
+
+
 function AddProduct({ onProductAdded }) {
     const [name, setName] = useState('');
     const [origin, setOrigin] = useState('');
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('kg');
     const [price, setPrice] = useState('');
-    const [expiryDate, setExpiryDate] = useState('');
+    const [category, setCategory] = useState('');
+    const [harvestDate, setHarvestDate] = useState(''); // <-- NEW STATE
     
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -18,31 +54,23 @@ function AddProduct({ onProductAdded }) {
     // Utility to parse logs and find the emitted ID
     const getProductIdFromReceipt = (receipt) => {
         try {
-            // Create an interface instance using the ABI
             const contractInterface = new ethers.Interface(SUPPLY_CHAIN_ABI);
             
-            // The receipt.logs array contains all logs from the transaction
-            if (!receipt || !receipt.logs || receipt.logs.length === 0) {
+            if (!receipt || !receipt.logs || !receipt.logs.length) {
                 console.warn('No logs found in receipt');
                 return null;
             }
             
-            // Loop through all logs in the receipt
             for (const log of receipt.logs) {
                 try {
-                    // Try to parse the log using the contract interface
                     const parsedLog = contractInterface.parseLog(log);
                     
-                    // Check if the event name matches ProductAdded
                     if (parsedLog && parsedLog.name === 'ProductAdded') {
-                        // Extract the product ID - it's the first indexed parameter
-                        // In ethers v6, parsedLog.args is an array-like object
                         const id = parsedLog.args[0] || parsedLog.args['id'];
                         console.log('ProductAdded event found, extracted ID:', id);
                         return Number(id);
                     }
                 } catch (e) {
-                    // Ignore logs that don't match this contract interface
                     console.debug('Could not parse log:', e.message);
                 }
             }
@@ -59,13 +87,19 @@ function AddProduct({ onProductAdded }) {
         e.preventDefault();
 
         // New validation logic
-        if (!name || !origin || !quantity || !unit || !price) {
-             setMessage("Error: Please fill all product details (Name, Origin, Quantity, Unit, Price).");
+        if (!name || !origin || !quantity || !unit || !price || !category || !harvestDate) { // <-- ADDED harvestDate validation
+             setMessage("Error: Please fill all product details (Name, Origin, Quantity, Unit, Price, Category, and Harvest Date).");
              return;
         }
         if (Number(quantity) <= 0 || Number(price) <= 0) {
              setMessage("Error: Quantity and Price must be greater than zero.");
              return;
+        }
+        
+        const daysToExpiry = SHELF_LIFE_DATA[category];
+        if (!daysToExpiry) {
+            setMessage("Error: Invalid product category selected.");
+            return;
         }
 
         if (!window.ethereum) {
@@ -89,26 +123,30 @@ function AddProduct({ onProductAdded }) {
             const priceInUnits = ethers.parseUnits(price, PRICE_DECIMALS); 
             const quantityInUnits = ethers.parseUnits(quantity, PRICE_DECIMALS); 
 
+            // --- UPDATED EXPIRY DATE LOGIC ---
+            // Calculate expiry based on HARVEST date, not today's date
+            const harvest = new Date(harvestDate);
+            const expiry = new Date(harvest);
+            expiry.setDate(harvest.getDate() + daysToExpiry); // Add the days from our shelf life map
+            
             // Convert expiry date to Unix timestamp
-            const expiryTimestamp = Math.floor(new Date(expiryDate).getTime() / 1000);
+            const expiryTimestamp = Math.floor(expiry.getTime() / 1000);
+            // --- END UPDATED LOGIC ---
             
             // 3. Transaction 1: Add the product
             setMessage('Waiting for addProduct transaction signature...');
             const tx = await contract.addProduct(name, origin, quantityInUnits, unit, priceInUnits, expiryTimestamp);
             
             setMessage(`Transaction submitted. Waiting for confirmation... TxHash: ${tx.hash.substring(0, 10)}...`);
-            const receipt = await tx.wait(); // Wait for mining confirmation
+            const receipt = await tx.wait();
             
             const realTxHash = receipt.hash;
             
-            // CRITICAL FIX: Get the exact product ID from the log
             let newProductId = getProductIdFromReceipt(receipt);
             
-            // Fallback: if we couldn't extract product ID from logs, query the contract
             if (!newProductId) {
                 console.warn('Could not extract product ID from logs, using fallback method...');
                 try {
-                    // Get the latest product count to determine the new product ID
                     const productCount = await contract.productCount();
                     newProductId = Number(productCount);
                     console.log('Using fallback product ID:', newProductId);
@@ -119,7 +157,6 @@ function AddProduct({ onProductAdded }) {
             }
 
             // 4. Final step: Refresh the dashboard data
-            // CRITICAL FIX: Pass BOTH the hash AND the ID to the parent fetch function
             if (onProductAdded) {
                 await onProductAdded(realTxHash, newProductId);
             }
@@ -131,8 +168,11 @@ function AddProduct({ onProductAdded }) {
             setOrigin('');
             setQuantity('');
             setPrice('');
+            setCategory('');
+            setHarvestDate(''); // <-- ADDED to clear harvest date
             
-        } catch (error) {
+        } catch (error)
+        {
             console.error("Transaction Error:", error);
             if (error.code === 4001) {
                 setMessage('Error: Transaction rejected by user.');
@@ -170,7 +210,6 @@ function AddProduct({ onProductAdded }) {
                     />
                 </div>
                 
-                {/* NEW FIELDS */}
                 <div className="form-group-row">
                     <div className="form-group">
                         <label>Quantity:</label>
@@ -191,7 +230,7 @@ function AddProduct({ onProductAdded }) {
                             <option value="kg">kg</option>
                             <option value="crates">Crates</option>
                             <option value="liters">Liters</option>
-                            <option value="tonnes">Tonnes</option>
+                            <option value_eth="tonnes">Tonnes</option>
                         </select>
                     </div>
                 </div>
@@ -207,16 +246,34 @@ function AddProduct({ onProductAdded }) {
                     />
                 </div>
 
+                {/* --- NEW HARVEST DATE FIELD --- */}
                 <div className="form-group">
-                    <label>Expiry Date:</label>
+                    <label>Harvest Date:</label>
                     <input 
                         type="date" 
-                        value={expiryDate} 
-                        onChange={(e) => setExpiryDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]} // Set minimum date to today
+                        value={harvestDate} 
+                        onChange={(e) => setHarvestDate(e.target.value)}
+                        // Prevent selecting a future date for harvest
+                        max={new Date().toISOString().split('T')[0]} 
                     />
                 </div>
-                {/* END NEW FIELDS */}
+                {/* --- END NEW FIELD --- */}
+
+                <div className="form-group">
+                    <label>Product Category:</label>
+                    <select 
+                        value={category} 
+                        onChange={(e) => setCategory(e.target.value)}
+                    >
+                        <option value="">-- Select Category --</option>
+                        {/* Use Object.keys to dynamically create options */}
+                        {Object.keys(SHELF_LIFE_DATA).map((catName) => (
+                            <option key={catName} value={catName}>
+                                {catName} ({SHELF_LIFE_DATA[catName]} days)
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <button type="submit" className="button-primary" disabled={loading}>
                     {loading ? (

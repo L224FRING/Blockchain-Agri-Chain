@@ -1,214 +1,134 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ethers } from 'ethers';
+import RatingBadge from './RatingBadge';
 // Import the necessary mappings from the config file
-import { STATE_MAPPING, ROLE_MANAGER_ABI, ROLE_MANAGER_ADDRESS } from './config'; 
+import { STATE_MAPPING, ROLE_MANAGER_ABI, ROLE_MANAGER_ADDRESS, FOR_SALE_STATES, SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 import './App.css'; // For general styling
+import StarRating from './StarRating';
 import './expiry.css'; // For expiry date styling
 
 // This is the Sepolia Etherscan URL for linking the hash
 const ETHERSCAN_URL = "https://sepolia.etherscan.io/tx/";
 
-// Utility function to format expiry date and get status
+// --- States where a product is for sale by a wholesaler ---
+// We define this here so ProductActions can use it
+const WHOLESALER_FOR_SALE_STATES = [
+    2, // ReceivedByWholesaler
+    3  // Processed
+];
+
+// --- Utility Functions (getExpiryInfo, formatPrice) ---
+// (No changes to your existing utility functions)
+
 const getExpiryInfo = (expiryTimestamp) => {
     if (!expiryTimestamp) return { text: 'N/A', className: '' };
-    
-    const now = Math.floor(Date.now() / 1000);
-    const expiryDate = new Date(Number(expiryTimestamp) * 1000);
-    const daysUntilExpiry = Math.floor((expiryTimestamp - now) / (24 * 60 * 60));
-    
-    if (now > expiryTimestamp) {
-        return {
-            text: 'EXPIRED',
-            className: 'expiry-expired',
-            fullDate: expiryDate.toLocaleDateString()
-        };
+    const nowSec = Math.floor(Date.now() / 1000);
+    const expirySec = typeof expiryTimestamp === 'bigint' ? Number(expiryTimestamp) : Number(expiryTimestamp);
+    const expiryDate = new Date(expirySec * 1000);
+    const daysUntilExpiry = Math.floor((expirySec - nowSec) / (24 * 60 * 60));
+    if (nowSec > expirySec) {
+        return { text: 'EXPIRED', className: 'expiry-expired', fullDate: expiryDate.toLocaleDateString() };
     } else if (daysUntilExpiry <= 7) {
-        return {
-            text: `${daysUntilExpiry}d left`,
-            className: 'expiry-warning',
-            fullDate: expiryDate.toLocaleDateString()
-        };
+        return { text: `${daysUntilExpiry}d left`, className: 'expiry-warning', fullDate: expiryDate.toLocaleDateString() };
     } else {
-        return {
-            text: expiryDate.toLocaleDateString(),
-            className: 'expiry-ok',
-            fullDate: expiryDate.toLocaleDateString()
-        };
+        return { text: expiryDate.toLocaleDateString(), className: 'expiry-ok', fullDate: expiryDate.toLocaleDateString() };
     }
 };
 
-// Utility function to format price
 const formatPrice = (price) => {
-    // Assuming price is stored as a whole number (no decimals in contract)
     const PRICE_DECIMALS = 0; 
-    
-    // Check if price is a BigInt (modern ethers.js return type)
     if (typeof price === 'bigint') {
-        // Safely convert BigInt to string before passing to formatUnits
         try {
             const formatted = ethers.formatUnits(price, PRICE_DECIMALS);
-            // Use local string formatting for currency display
             return `₹${Number(formatted).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
         } catch (e) {
             console.error("Error formatting price (BigInt issue):", e);
             return "N/A (Fmt Error)";
         }
     }
-    // Handle cases where the value might be null or zero
     return "N/A";
 };
 
-// Component to handle action buttons (Phase 2 core logic)
-// Added onAction prop
-const ProductActions = ({ product, currentRole, connectedWallet, onAction, loading }) => {
-    // local hook state for inputs (must be at top-level of component)
+
+
+const ProductActions = ({ product, currentRole, connectedWallet, onAction, onSetPrice, onRate, loading }) => {
+    
+    // ... (state for farmer dropdown: username, wholesalers, etc.) ...
+    const [markup, setMarkup] = useState('');
     const [username, setUsername] = React.useState('');
     const [wholesalers, setWholesalers] = React.useState([]);
     const [loadingWholesalers, setLoadingWholesalers] = React.useState(false);
-    const [dropdownOpen, setDropdownOpen] = React.useState(false);
+    const [hasFetchedWholesalers, setHasFetchedWholesalers] = React.useState(false);
 
-    // Current owner should be the connected wallet
     const isOwner = product.owner.toLowerCase() === connectedWallet.toLowerCase();
 
-    // Fetch available wholesalers when dropdown opens
-    React.useEffect(() => {
-        if (currentRole === 'Farmer' && isOwner && product.currentState === 0 && dropdownOpen && wholesalers.length === 0) {
-            fetchWholesalers();
-        }
-    }, [dropdownOpen, currentRole, isOwner, product.currentState, wholesalers.length]);
-
+    // Fetch wholesalers (by username) from RoleManager
     const fetchWholesalers = async () => {
+        if (loadingWholesalers) return;
         setLoadingWholesalers(true);
         try {
+            if (!window.ethereum) { setWholesalers([]); return; }
             const provider = new ethers.BrowserProvider(window.ethereum);
-            const roleManagerContract = new ethers.Contract(ROLE_MANAGER_ADDRESS, ROLE_MANAGER_ABI, provider);
-            
-            // Fetch RoleAssigned events where role is Wholesaler (role index 2)
-            const currentBlock = await provider.getBlockNumber();
-            const fromBlock = Math.max(0, currentBlock - 10000);
-            
-            // Create a filter for RoleAssigned events (Wholesaler role = 2)
-            const eventTopic = ethers.id('RoleAssigned(address,uint8,string)');
-            const wholesalerRole = 2; // Wholesaler enum value
-            
-            const logs = await provider.getLogs({
-                address: ROLE_MANAGER_ADDRESS,
-                topics: [eventTopic],
-                fromBlock: fromBlock,
-                toBlock: 'latest'
-            });
-            
-            // Parse logs to extract usernames
-            const usernamesSet = new Set();
-            for (const log of logs) {
-                try {
-                    const parsed = roleManagerContract.interface.parseLog(log);
-                    if (parsed && parsed.args && parsed.args.role === wholesalerRole) {
-                        usernamesSet.add(parsed.args.username);
-                    }
-                } catch (e) {
-                    console.warn('Error parsing log:', e);
-                }
-            }
-            
-            const wholesalerList = Array.from(usernamesSet).sort();
-            setWholesalers(wholesalerList);
-            
-            if (wholesalerList.length === 0) {
-                console.warn('No registered wholesalers found in the last 10000 blocks');
-            }
-        } catch (error) {
-            console.error('Error fetching wholesalers:', error);
+            // Prefer reading RoleManager address from SupplyChain to avoid mismatch
+            let roleManagerAddr = ROLE_MANAGER_ADDRESS;
+            try {
+                const sc = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, provider);
+                roleManagerAddr = await sc.roleManager();
+            } catch (_) {}
+            const roleManager = new ethers.Contract(roleManagerAddr, ROLE_MANAGER_ABI, provider);
+            // Role enum: None=0, Farmer=1, Wholesaler=2, Retailer=3, Consumer=4
+            const usernames = await roleManager.getUsernamesByRole(2);
+            setWholesalers(Array.isArray(usernames) ? usernames : []);
+            setHasFetchedWholesalers(true);
+        } catch (e) {
+            console.error('Failed to fetch wholesalers:', e);
             setWholesalers([]);
+            setHasFetchedWholesalers(true);
         } finally {
             setLoadingWholesalers(false);
         }
     };
-    
-    // --- Farmer Actions ---
+    React.useEffect(() => {
+        if (currentRole === 'Farmer' && isOwner && product.currentState === 0 && !hasFetchedWholesalers) {
+            fetchWholesalers();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentRole, isOwner, product.currentState, hasFetchedWholesalers]);
+
+
+    // --- 1. Farmer Actions ---
     if (currentRole === 'Farmer' && isOwner) {
         if (product.currentState === 0) { // State 0: Harvested
             return (
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '120px' }}>
-                        <button
-                            onClick={() => {
-                                setDropdownOpen(!dropdownOpen);
-                                if (!dropdownOpen && wholesalers.length === 0) {
-                                    fetchWholesalers();
-                                }
-                            }}
-                            style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                textAlign: 'left',
-                                backgroundColor: '#fff',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                fontSize: '0.9em'
-                            }}
-                            disabled={loading}
+                <div className="action-box" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label>Wholesaler Username:</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <select
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            disabled={loading || loadingWholesalers || wholesalers.length === 0}
+                            style={{ padding: '6px 8px', fontSize: '0.95em' }}
                         >
-                            <span>{username || 'Select wholesaler'}</span>
-                            <span>{dropdownOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {dropdownOpen && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                right: 0,
-                                backgroundColor: '#fff',
-                                border: '1px solid var(--border-color)',
-                                borderTop: 'none',
-                                borderRadius: '0 0 4px 4px',
-                                zIndex: 1000,
-                                maxHeight: '200px',
-                                overflowY: 'auto',
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                            }}>
-                                {loadingWholesalers ? (
-                                    <div style={{ padding: '10px', textAlign: 'center', color: '#666', fontSize: '0.9em' }}>
-                                        Loading...
-                                    </div>
-                                ) : wholesalers.length > 0 ? (
-                                    wholesalers.map(w => (
-                                        <div
-                                            key={w}
-                                            onClick={() => {
-                                                setUsername(w);
-                                                setDropdownOpen(false);
-                                            }}
-                                            style={{
-                                                padding: '10px 12px',
-                                                cursor: 'pointer',
-                                                backgroundColor: username === w ? '#e8f4f8' : '#fff',
-                                                borderBottom: '1px solid #eee',
-                                                fontSize: '0.9em'
-                                            }}
-                                            onMouseEnter={e => e.target.style.backgroundColor = '#f0f0f0'}
-                                            onMouseLeave={e => e.target.style.backgroundColor = username === w ? '#e8f4f8' : '#fff'}
-                                        >
-                                            {w}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div style={{ padding: '10px', textAlign: 'center', color: '#999', fontSize: '0.9em' }}>
-                                        No wholesalers
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                            <option value="">
+                                {loadingWholesalers ? 'Loading wholesalers...' : 'Select a wholesaler'}
+                            </option>
+                            {wholesalers.map((u) => (
+                                <option key={u} value={u}>{u}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="or type username manually"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            style={{ padding: '6px 8px', fontSize: '0.9em' }}
+                            disabled={loading}
+                        />
                     </div>
                     <button
                         onClick={() => onAction(product.id, username.trim())}
-                        className="button-action button-ship"
+                        className="button-action"
                         disabled={loading || !username.trim()}
-                        title="Propose transfer to wholesaler by username"
                     >
                         Propose Transfer
                     </button>
@@ -217,12 +137,14 @@ const ProductActions = ({ product, currentRole, connectedWallet, onAction, loadi
         }
     }
     
-    // --- Wholesaler Actions ---
-     if (currentRole === 'Wholesaler' && isOwner) {
-        if (product.currentState === 1) { // State 1: Shipped To Wholesaler
+    // --- 2. Wholesaler Actions ---
+    if (currentRole === 'Wholesaler' && isOwner) {
+        
+        // Step 1: Confirm Receipt
+        if (product.currentState === 1) { // 1 = ShippedToWholesaler
             return (
-                <button 
-                    onClick={() => onAction(product.id)} // Calls the confirmReceipt function
+                <button
+                    onClick={() => onAction(product.id)} // onAction is handleConfirmReceipt
                     className="button-action button-receive"
                     disabled={loading}
                 >
@@ -230,36 +152,172 @@ const ProductActions = ({ product, currentRole, connectedWallet, onAction, loadi
                 </button>
             );
         }
+
+        // Step 2: Rate Farmer & Set Price
+        if (FOR_SALE_STATES.includes(product.currentState)) {
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    
+                    {/* --- Rating UI --- */}
+                    {!product.farmerRated ? (
+                        <div className="action-box">
+                            <label>Rate Farmer:</label>
+                            <StarRating onRate={(score) => onRate(product.id, score)} loading={loading} />
+                        </div>
+                    ) : (
+                        <span className="no-action-label">Farmer Rated ✔</span>
+                    )}
+
+                    {/* --- Set Price UI --- */}
+                    <div className="action-box">
+                        <label>Set Markup:</label>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <input
+                                type="number"
+                                placeholder="Markup %"
+                                value={markup}
+                                onChange={(e) => setMarkup(e.target.value)}
+                                style={{ width: '80px', padding: '6px 8px', fontSize: '0.9em' }}
+                                disabled={loading}
+                            />
+                            <button
+                                onClick={() => onSetPrice(product.id, markup)}
+                                className="button-action button-set-price"
+                                disabled={loading || !markup || Number(markup) <= 0}
+                            >
+                                Set Price
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        }
+    }
+
+    // --- 3. Retailer Actions ---
+    if (currentRole === 'Retailer') {
+        
+        // Action: Propose Purchase (in Marketplace - states 2 or 3, not owned)
+        if (!isOwner && FOR_SALE_STATES.includes(product.currentState)) {
+            return (
+                <button
+                    onClick={() => onAction(product.id, product.pricePerUnit)} // onAction is handleProposePurchase
+                    className="button-action button-buy"
+                    disabled={loading}
+                >
+                    Propose Purchase (Pay Now)
+                </button>
+            );
+        }
+        
+        // Action: Confirm Receipt (state 4 - shipped to retailer)
+        if (isOwner && product.currentState === 4) {
+            return (
+                <button
+                    onClick={() => onAction(product.id)} // onAction is handleConfirmReceipt
+                    className="button-action button-receive"
+                    disabled={loading}
+                >
+                    Confirm Receipt
+                </button>
+            );
+        }
+        
+        // Action: List for Sale with markup (state 5 - received by retailer)
+        if (isOwner && product.currentState === 5) {
+            return (
+                <div className="action-box">
+                    <label>Set Markup:</label>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                            type="number"
+                            placeholder="Markup %"
+                            value={markup}
+                            onChange={(e) => setMarkup(e.target.value)}
+                            style={{ width: '80px', padding: '6px 8px', fontSize: '0.9em' }}
+                            disabled={loading}
+                        />
+                        <button
+                            onClick={() => onSetPrice(product.id, markup)}
+                            className="button-action button-set-price"
+                            disabled={loading || !markup || Number(markup) <= 0}
+                        >
+                            List for Sale
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Action: Rate Wholesaler (states 5, 6, or 7 - after receiving)
+        if (isOwner && (product.currentState === 5 || product.currentState === 6 || product.currentState === 7)) {
+            if (!product.wholesalerRated) {
+                return (
+                     <div className="action-box">
+                        <label>Rate Wholesaler:</label>
+                        <StarRating onRate={(score) => onRate(product.id, score)} loading={loading} />
+                    </div>
+                );
+            } else {
+                return <span className="no-action-label">Wholesaler Rated ✔</span>;
+            }
+        }
     }
     
-    // If no action is available or required
+    // --- 4. Consumer Actions ---
     if (currentRole === 'Consumer') {
-         return <span className="no-action-label">View History</span>;
+        
+        // Action: Buy Product (in Marketplace - state 6, not owned)
+        if (!isOwner && product.currentState === 6) {
+            return (
+                <button
+                    onClick={() => onAction(product.id, product.pricePerUnit)} // onAction is handleBuyProduct
+                    className="button-action button-buy"
+                    disabled={loading}
+                >
+                    Buy Now
+                </button>
+            );
+        }
+        
+        // Action: Rate Retailer (state 7 - purchased)
+        if (isOwner && product.currentState === 7 && !product.retailerRated) {
+            return (
+                <div className="action-box">
+                    <label>Rate Retailer:</label>
+                    <StarRating onRate={(score) => onRate(product.id, score)} loading={loading} />
+                </div>
+            );
+        }
+        
+        // Show rated status
+        if (isOwner && product.currentState === 7 && product.retailerRated) {
+            return <span className="no-action-label">Retailer Rated ✔</span>;
+        }
     }
-
-    // Return current state label if no actions are available but the product is still owned
+    
+    // --- Fallback ---
     if (isOwner) {
-         return <span className="no-action-label">Status OK</span>;
+         return <span className="no-action-label">No action</span>;
     }
-
-    return <span className="no-action-label">No actions available</span>;
+    return <span className="no-action-label">Not owner</span>;
 };
 
 
-// Dashboard Component
-function Dashboard({ products, loading, currentRole, connectedWallet, onAction }) {
+// --- Dashboard Component (Main) ---
+// We must add the `onSetPrice` prop
+function Dashboard({ products, loading, currentRole, connectedWallet, onAction, onSetPrice, onRate ,onViewHistory}) {
 
-    // --- Loading State ---
     if (loading) return (
         <div className="loading-container">
-            <span className="spinner"></span> 
-            <p>Fetching {currentRole} products from the blockchain...</p>
+            <span className="spinner"></span>
+            <p>Loading products...</p>
         </div>
     );
 
-    // --- Empty State ---
     if (products.length === 0) {
-        return <p className="no-products">No products found under your role's ownership or filter.</p>;
+        return <p className="no-products">No products found for this view.</p>;
     }
 
     return (
@@ -275,10 +333,9 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction }
                             <th>Expiry</th>
                             <th>Status</th>
                             <th>Proof (Hash)</th>
-                            {/* Only show Actions column for Farmer/Wholesaler */}
-                            {(currentRole === 'Farmer' || currentRole === 'Wholesaler') && (
-                                <th>Actions</th>
-                            )}
+                            {/* Actions column shows for everyone now, but content differs */}
+                            <th>Actions</th>
+                            <th>History</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -291,14 +348,28 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction }
                                     <span style={{ fontSize: '0.9em', color: 'var(--subtle-text-color)' }}>
                                         From: {product.origin}
                                     </span>
+                                    <br />
+                                    <span style={{ fontSize: '0.85em', color: 'var(--subtle-text-color)' }}>
+                                        <RatingBadge userAddress={product.farmer} label="Farmer" />
+                                        {product.wholesaler && (
+                                            <>
+                                                {' · '}
+                                                <RatingBadge userAddress={product.wholesaler} label="Wholesaler" />
+                                            </>
+                                        )}
+                                        {product.retailer && (
+                                            <>
+                                                {' · '}
+                                                <RatingBadge userAddress={product.retailer} label="Retailer" />
+                                            </>
+                                        )}
+                                    </span>
                                 </td>
                                 <td>
-                                    {/* FIX: Format Quantity (which is a Number after conversion in App.js) */}
                                     {Number(product.quantity).toLocaleString()} {product.unit}
                                 </td>
                                 <td>{formatPrice(product.pricePerUnit)}</td>
                                 <td>
-                                    {/* Display Expiry Date with status indicator */}
                                     {(() => {
                                         const expiryInfo = getExpiryInfo(product.expiryDate);
                                         return (
@@ -312,13 +383,11 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction }
                                     })()}
                                 </td>
                                 <td>
-                                    {/* Display State from mapping, ensuring product.currentState is a valid key (Number) */}
                                     <span className={`state-badge state-${product.currentState}`}>
                                         {STATE_MAPPING[product.currentState] || 'Unknown'}
                                     </span>
                                 </td>
                                 <td>
-                                    {/* Link the initial transaction hash */}
                                     {product.txHash ? (
                                         <a 
                                             href={`${ETHERSCAN_URL}${product.txHash}`} 
@@ -333,18 +402,25 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction }
                                         <span className="no-hash">No Hash</span>
                                     )}
                                 </td>
-                                {/* Actions Column */}
-                                {(currentRole === 'Farmer' || currentRole === 'Wholesaler') && (
-                                    <td>
-                                        <ProductActions 
-                                            product={product} 
-                                            currentRole={currentRole} 
-                                            connectedWallet={connectedWallet} 
-                                            onAction={onAction} // Passed the action function
-                                            loading={loading} // Passed loading state
-                                        />
-                                    </td>
-                                )}
+                                <td>
+                                    <ProductActions 
+                                        product={product} 
+                                        currentRole={currentRole} 
+                                        connectedWallet={connectedWallet} 
+                                        onAction={onAction}
+                                        onSetPrice={onSetPrice} // Pass the new prop down
+                                        onRate={onRate}
+                                        loading={loading}
+                                    />
+                                </td>
+                                <td>
+                                    <button 
+                                        className="button-history"
+                                        onClick={() => onViewHistory(product)}
+                                    >
+                                        View
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

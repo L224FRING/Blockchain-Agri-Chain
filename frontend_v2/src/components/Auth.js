@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
-import { ROLE_MANAGER_ADDRESS, ROLE_MANAGER_ABI } from '../config';
+import { ROLE_MANAGER_ABI, ROLE_MANAGER_ADDRESS, SUPPLY_CHAIN_ADDRESS } from '../config';
 import './Auth.css';
 
 const ROLES = {
@@ -9,6 +9,52 @@ const ROLES = {
     RETAILER: 3,
     CONSUMER: 4
 };
+
+
+/*const handleAuthorizeContract = async () => {
+    if (!window.ethereum) {
+        alert("MetaMask is not installed.");
+        return;
+    }
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const connectedAddress = await signer.getAddress();
+
+        console.log("Connecting as owner:", connectedAddress);
+
+        // Create an instance of the RoleManager contract
+        const roleManagerContract = new ethers.Contract(
+            ROLE_MANAGER_ADDRESS,
+            ROLE_MANAGER_ABI,
+            signer
+        );
+
+        console.log("Authorizing SupplyChain at:", SUPPLY_CHAIN_ADDRESS);
+
+        // Call the setSupplyChainContract function
+        const tx = await roleManagerContract.setSupplyChainContract(SUPPLY_CHAIN_ADDRESS);
+        
+        console.log("Transaction sent:", tx.hash);
+        alert("Transaction sent. Waiting for confirmation...");
+
+        await tx.wait();
+
+        console.log("SUCCESS! SupplyChain contract is now authorized.");
+        alert("SUCCESS! The SupplyChain contract is now authorized. You can remove this button.");
+
+    } catch (error) {
+        console.error("Authorization Error:", error);
+        if (error.code === 4001) {
+            alert("Error: Transaction rejected by user.");
+        } else if (error.message.includes("Ownable: caller is not the owner")) {
+            alert("Error: You are not the owner of the RoleManager contract.");
+        } else {
+            alert("An error occurred. Check the console.");
+        }
+    }
+}; */
 
 const Auth = ({ onLogin }) => {
     const [error, setError] = useState('');
@@ -124,6 +170,22 @@ const Auth = ({ onLogin }) => {
                 {isLoading ? 'Connecting...' : 'Connect Wallet'}
             </button>
 
+        {/* --- ADD THIS ADMIN BUTTON --- */}
+        {/*    <button 
+                onClick={handleAuthorizeContract} 
+                style={{
+                    backgroundColor: '#e67e22', // Orange
+                    color: 'white',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    marginTop: '15px'
+                }}
+            >
+                (OWNER ONLY) One-Time Authorize
+            </button>
+        */}
             {success && (
                 <div className="success-message">
                     {success}

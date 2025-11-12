@@ -803,4 +803,69 @@ p {
       padding: 10px 20px;
   }
 }
+/* ... at the end of your App.css file ... */
 
+/* --- Action Button Styles --- */
+
+/* Wholesaler "Set Price" Button */
+.button-set-price {
+  background-color: #e67e22; /* Orange */
+  color: white;
+}
+.button-set-price:hover {
+  background-color: #d35400;
+}
+
+/* Retailer "Buy Now" Button */
+.button-buy {
+  background-color: var(--success-color); /* Green */
+  color: white;
+  font-weight: bold;
+}
+.button-buy:hover {
+  background-color: var(--success-color-dark);
+}
+
+/* ... at the end of App.css ... */
+
+/* New layout for Farmer View */
+/* New layout for Farmer View */
+
+.dashboard-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* Space between the two dashboards */
+  min-width: 0; /* <-- ADD THIS LINE */
+}
+
+
+/* --- In App.css, at the end --- */
+
+/* Styles for action cells with multiple items */
+.action-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+.action-box label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--subtle-text-color);
+    text-transform: uppercase;
+}
+
+/* In App.css, find .table-responsive and replace it with this */
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  border: 1px solid var(--border-color); /* Keeps the container defined */
+  border-radius: var(--border-radius-small);
+  margin-top: 20px;
+  
+  /* --- NEW STYLES --- */
+  /* Change background to match the main page, not the card */
+  background-color: var(--background-color); 
+  /* Add an inset shadow to make it look "sunk in" */
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.4);
+}

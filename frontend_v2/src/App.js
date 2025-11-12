@@ -171,11 +171,18 @@ function App() {
                     name: item.name,
                     origin: item.origin,
                     owner: item.owner,
-                    txHash: finalHash, // Use potentially stored hash
+                    farmer: item.farmer,           
+                    wholesaler: item.wholesaler,
+                    retailer: item.retailer,
+                    txHash: finalHash,
                     quantity: item.quantity,
                     unit: item.unit,
                     pricePerUnit: item.pricePerUnit,
-                    currentState: Number(item.currentState)
+                    currentState: Number(item.currentState),
+                    expiryDate: item.expiryDate,
+                    farmerRated: item.farmerRated,    
+                    wholesalerRated: item.wholesalerRated,
+                    retailerRated: item.retailerRated,
                 };
             });
 
@@ -275,8 +282,8 @@ function App() {
         // Pass necessary data and functions down to the RetailerView (placeholder)
         return <RetailerView products={products} loading={loading} connectedWallet={connectedWallet} fetchProducts={fetchProducts} onLogout={handleLogout} />;
       case 'Consumer':
-        // Pass necessary data and functions down to the ConsumerView (placeholder)
-        return <ConsumerView products={products} loading={loading} connectedWallet={connectedWallet} onLogout={handleLogout} />;
+        // Pass necessary data and functions down to the ConsumerView
+        return <ConsumerView products={products} loading={loading} connectedWallet={connectedWallet} fetchProducts={fetchProducts} onLogout={handleLogout} />;
       default:
         // Fallback to Auth if the role state is somehow invalid
         console.error("Invalid loggedInRole:", loggedInRole);

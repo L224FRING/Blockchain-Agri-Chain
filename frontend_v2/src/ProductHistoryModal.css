@@ -1,0 +1,117 @@
+/* --- History Button --- */
+.button-history {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  font-size: 0.9em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.button-history:hover {
+  background-color: #e0e0e0;
+}
+
+/* --- History Modal Styles --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #aaa;
+  cursor: pointer;
+  line-height: 1;
+}
+.modal-close:hover {
+  color: #333;
+}
+
+/* --- History Timeline --- */
+.history-timeline {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 10px 10px 15px 30px;
+  border-left: 3px solid #e0e0e0;
+}
+.timeline-item:last-child {
+  border-left: 3px solid transparent;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -9px; /* (3px border + 15px dot) / 2 */
+  top: 18px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ccc;
+  border: 2px solid white;
+}
+
+/* Colors based on type */
+.timeline-item.creation .timeline-dot { background-color: var(--success-color); }
+.timeline-item.price .timeline-dot { background-color: #e67e22; }
+.timeline-item.state .timeline-dot { background-color: var(--primary-color); }
+.timeline-item.owner .timeline-dot { background-color: #9b59b6; }
+
+
+.timeline-content .timeline-date {
+  font-size: 0.85em;
+  color: #777;
+  display: block;
+  margin-bottom: 5px;
+}
+.timeline-content .timeline-title {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+}
+.timeline-content .timeline-desc {
+  margin: 5px 0 10px 0;
+  color: #555;
+}
+.timeline-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  color: #777;
+}
+.timeline-footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: bold;
+}

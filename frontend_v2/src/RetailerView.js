@@ -1,78 +1,380 @@
-import React from 'react';
-import Dashboard from './Dashboard'; // Re-use the Dashboard component
-// Import authorized addresses to identify the Wholesaler
-import { AUTHORIZED_ADDRESSES, STATE_MAPPING } from './config';
-import './App.css'; // Re-use App.css for styling
+import React, { useState } from 'react';
+import ProductHistoryModal from './ProductHistoryModal';
+import { ethers } from 'ethers';
+import Dashboard from './Dashboard';
+import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
+import './App.css';
 
-// Define relevant states for Retailer visibility:
-// Anything from ShippedToWholesaler onwards, up to potentially being sold.
-const RETAILER_VISIBLE_STATES = [1, 2, 3, 4, 5, 6]; // ShippedToWholesaler, ReceivedByWholesaler, Processed, ShippedToRetailer, ReceivedByRetailer, ForSale
+// States where a product is considered "for sale" by a wholesaler
+const WHOLESALER_FOR_SALE_STATES = [
+    2, // ReceivedByWholesaler
+    3  // Processed
+];
 
 function RetailerView({ products, loading, connectedWallet, fetchProducts, onLogout }) {
+    const [actionLoading, setActionLoading] = useState(false);
+    const [actionMessage, setActionMessage] = useState(null);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [pendingProposals, setPendingProposals] = useState([]);
+    const [proposalLoading, setProposalLoading] = useState(false);
 
-  // --- Filtering Logic: Show products relevant to the Retailer's perspective ---
-  const retailerVisibleProducts = products.filter(p => {
-    const ownerLower = p.owner.toLowerCase();
-  const wholesalerLower = (AUTHORIZED_ADDRESSES.Wholesaler && AUTHORIZED_ADDRESSES.Wholesaler[0].toLowerCase()) || '';
-    const connectedLower = connectedWallet.toLowerCase(); // The wallet logged in AS Retailer
+    // Fetch my pending proposals
+    const fetchMyProposals = React.useCallback(async () => {
+        if (!connectedWallet || !window.ethereum || products.length === 0) {
+            setPendingProposals([]);
+            return;
+        }
+        
+        setProposalLoading(true);
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, provider);
+            const myWallet = connectedWallet.toLowerCase();
+            const proposals = [];
+            
+            for (const product of products) {
+                try {
+                    const proposal = await contract.retailerTransferProposals(product.id);
+                    if (proposal.proposer.toLowerCase() === myWallet && !proposal.executed) {
+                        proposals.push({
+                            ...product,
+                            proposalConfirmed: proposal.wholesalerConfirmed
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Error fetching proposal for product ${product.id}:`, err.message);
+                }
+            }
+            setPendingProposals(proposals);
+        } catch (error) {
+            console.error("Error fetching retailer proposals:", error);
+        } finally {
+            setProposalLoading(false);
+        }
+    }, [products, connectedWallet]);
 
-    // Condition 1: Product is owned by the currently logged-in Retailer (regardless of state, they own it)
-    const isOwnedByRetailer = ownerLower === connectedLower;
+    React.useEffect(() => {
+        fetchMyProposals();
+    }, [fetchMyProposals]);
 
-    // Condition 2: Product is owned by the Wholesaler AND is in a state >= ShippedToWholesaler
-    // This shows products in the pipeline coming towards the retailer.
-    const isInWholesalerPipeline =
-        ownerLower === wholesalerLower &&
-        RETAILER_VISIBLE_STATES.includes(p.currentState); // Check if state is relevant
+    /**
+     * Propose purchase from wholesaler with payment escrow
+     */
+    const handleProposePurchase = async (productId, price) => {
+        if (!window.ethereum) return setActionMessage("Error: MetaMask not found.");
 
-    // EXCLUDE products still in Harvested state (State 0), even if owned by the connected wallet (if user is also farmer)
-    const isHarvested = p.currentState === 0; // State 0 is Harvested
+        const priceString = ethers.formatUnits(price, 0);
+        
+        setActionLoading(true);
+        setActionMessage(`Proposing purchase for Product ID ${productId} for ₹${priceString}...`);
 
-    // Show if owned by retailer OR in wholesaler pipeline, BUT NOT if it's still Harvested
-    return (isOwnedByRetailer || isInWholesalerPipeline) && !isHarvested;
-  });
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
+
+            const tx = await contract.proposeRetailerPurchase(productId, {
+                value: price
+            });
+
+            setActionMessage('Transaction submitted. Waiting for confirmation...');
+            await tx.wait();
+
+            setActionMessage(`✅ Success! Purchase proposal submitted for Product ${productId}. Payment is held in escrow.`);
+            fetchProducts();
+            fetchMyProposals();
+
+        } catch (error) {
+            console.error("Propose Purchase Error:", error);
+            if (error.code === 4001) {
+                setActionMessage('Error: Transaction rejected by user.');
+            } else if (error.message.includes("Incorrect payment amount")) {
+                setActionMessage("Error: Payment amount does not match product price.");
+            } else if (error.message.includes("Caller must be a Retailer")) {
+                setActionMessage("Error: Your connected wallet does not have the 'Retailer' role.");
+            } else if (error.message.includes("Active proposal already exists")) {
+                setActionMessage("Error: You already have a pending proposal for this product.");
+            } else {
+                setActionMessage(`Error proposing purchase. Check console.`);
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    /**
+     * Cancel a pending proposal and get refund
+     */
+    const handleCancelProposal = async (productId) => {
+        if (!window.ethereum) return setActionMessage("Error: MetaMask not found.");
+        
+        setActionLoading(true);
+        setActionMessage(`Cancelling proposal for Product ID ${productId}...`);
+
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
+
+            const tx = await contract.cancelRetailerProposal(productId);
+            await tx.wait();
+
+            setActionMessage(`✅ Success! Proposal cancelled and payment refunded for Product ${productId}.`);
+            fetchProducts();
+            fetchMyProposals();
+
+        } catch (error) {
+            console.error("Cancel Proposal Error:", error);
+            if (error.code === 4001) {
+                setActionMessage('Error: Transaction rejected by user.');
+            } else if (error.message.includes("Cannot cancel after wholesaler confirmation")) {
+                setActionMessage("Error: Cannot cancel - wholesaler has already confirmed.");
+            } else {
+                setActionMessage("Error cancelling proposal. Check console.");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    /**
+     * Confirm receipt of product (state 4 -> 5)
+     */
+    const handleConfirmReceipt = async (productId) => {
+        if (!window.ethereum) return setActionMessage("Error: MetaMask not found.");
+        
+        setActionLoading(true);
+        setActionMessage(`Confirming receipt for Product ID ${productId}...`);
+
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
+
+            const tx = await contract.updateProductState(productId, 5); // State 5 = ReceivedByRetailer
+            await tx.wait();
+
+            setActionMessage(`✅ Success! Product ${productId} received. You can now list it for sale.`);
+            fetchProducts();
+
+        } catch (error) {
+            console.error("Confirm Receipt Error:", error);
+            if (error.code === 4001) {
+                setActionMessage('Error: Transaction rejected by user.');
+            } else if (error.message.includes("Retailer can only receive")) {
+                setActionMessage("Error: Product is not in the correct state.");
+            } else {
+                setActionMessage("Error confirming receipt. Check console.");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    /**
+     * List product for sale with markup (state 5 -> 6)
+     */
+    const handleListForSale = async (productId, markupPercentage) => {
+        const markup = parseInt(markupPercentage, 10);
+        if (isNaN(markup) || markup <= 0) {
+            return setActionMessage("Error: Please enter a valid, positive markup percentage.");
+        }
+        
+        setActionLoading(true);
+        setActionMessage(`Listing Product ID ${productId} for sale with ${markup}% markup...`);
+
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
+
+            const tx = await contract.retailerListForSale(productId, markup);
+            await tx.wait();
+
+            setActionMessage(`✅ Success! Product ${productId} is now listed for sale.`);
+            fetchProducts();
+
+        } catch (error) {
+            console.error("List For Sale Error:", error);
+            if (error.code === 4001) {
+                setActionMessage('Error: Transaction rejected by user.');
+            } else if (error.message.includes("Product must be received by retailer")) {
+                setActionMessage("Error: Product must be in 'Received' state to list.");
+            } else {
+                setActionMessage("Error listing product. Check console.");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRateWholesaler = async (productId, score) => {
+        if (score < 1 || score > 5) {
+            return setActionMessage("Error: Rating must be between 1 and 5.");
+        }
+        
+        setActionLoading(true);
+        setActionMessage(`Submitting ${score}-star rating for wholesaler of Product ID ${productId}...`);
+
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, signer);
+
+            // This is the new contract function
+            const tx = await contract.retailerRateWholesaler(productId, score);
+            await tx.wait();
+
+            setActionMessage(`✅ Success! Wholesaler rated for Product ${productId}.`);
+            fetchProducts(); // Refresh data to hide the rating component
+
+        } catch (error) {
+            console.error("Rate Wholesaler Error:", error);
+            if (error.code === 4001) setActionMessage('Error: Transaction rejected by user.');
+            else if (error.message.includes("Wholesaler has already been rated")) {
+                setActionMessage("Error: You have already rated the wholesaler for this product.");
+            }
+            else setActionMessage("Error submitting rating. Check console.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // --- Filter Products ---
+
+    // 1. Marketplace: Products for sale by wholesalers (States 2 or 3) AND not owned by me
+    const marketplaceProducts = products.filter(
+        p => WHOLESALER_FOR_SALE_STATES.includes(p.currentState) &&
+             p.owner.toLowerCase() !== connectedWallet.toLowerCase()
+    );
+
+    // 2. My Inventory: Products owned by me (the retailer)
+    const myInventory = products.filter(
+        p => p.owner.toLowerCase() === connectedWallet.toLowerCase()
+    );
+
+    const handleViewHistory = (product) => {
+        setSelectedProduct(product);
+        setHistoryModalOpen(true);
+    };
 
 
-  return (
-    // Wrap content in a React Fragment to include the button alongside the layout
-     <>
-      {/* Back to Home Button */}
-      <button onClick={onLogout} className="back-button">
-        &larr; Back to Home / Select Role
-      </button>
+    return (
+        <>
+            <button onClick={onLogout} className="back-button">
+                &larr; Back to Home / Select Role
+            </button>
 
-      {/* Use a single-column layout */}
-      <div className="main-layout-single animate-fade-in">
-        <div className="card full-width">
-          {/* Header for the Retailer view */}
-          <h2><span role="img" aria-label="shopping-cart">🛒</span> Retailer Dashboard</h2>
-          <p>View your current inventory and track products moving through the wholesaler stage towards your store.</p>
+            <div className="main-layout-single animate-fade-in">
 
-          {/* Display products visible to the retailer */}
-          <Dashboard
-            products={retailerVisibleProducts} // Pass the correctly filtered list
-            loading={loading}
-            currentRole="Retailer" // Pass the role for context (needed for button logic)
-            connectedWallet={connectedWallet}
-            // onAction prop will be implemented here later for "Receive Shipment" and "List for Sale"
-          />
+                {/* --- Action Message Bar --- */}
+                {actionMessage && (
+                    <p className={`message ${actionMessage.startsWith('✅') ? 'message-success' : 'message-error'}`}>
+                        {actionMessage}
+                    </p>
+                )}
 
-          {/* Placeholder section outlining future features */}
-          <div style={{ marginTop: '30px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-            <h4>Retailer Actions (Future Implementation)</h4>
-            <ul className="placeholder-list">
-              <li>View incoming inventory (Products owned by Wholesaler with status 'ShippedToRetailer')</li>
-              <li>Confirm receipt from wholesaler (Action button on Dashboard rows for owned products with status 'ShippedToRetailer')</li>
-              <li>Manage stock levels and product details</li>
-              <li>List products 'For Sale' (Action button to update state to 'ForSale' for owned products)</li>
-              <li>View sales history</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+                {/* --- CARD 1: Marketplace (Products to Propose Purchase) --- */}
+                <div className="card full-width">
+                    <h2><span role="img" aria-label="market">🛒</span> Wholesaler Marketplace</h2>
+                    <p>Products available for purchase from wholesalers. Propose purchase with payment held in escrow.</p>
+                    
+                    <Dashboard
+                        products={marketplaceProducts}
+                        loading={loading || actionLoading}
+                        currentRole="Retailer"
+                        connectedWallet={connectedWallet}
+                        onAction={handleProposePurchase}
+                        onSetPrice={() => {}}
+                        onRate={() => {}}
+                        onViewHistory={handleViewHistory}
+                    />
+                </div>
+
+                {/* --- CARD 2: Pending Proposals --- */}
+                {pendingProposals.length > 0 && (
+                    <div className="card full-width" style={{ marginTop: '2rem' }}>
+                        <h2><span role="img" aria-label="hourglass">⏳</span> Pending Purchase Proposals</h2>
+                        <p>Your purchase proposals waiting for wholesaler confirmation. Payment is held in escrow.</p>
+                        
+                        {proposalLoading ? (
+                            <div className="loading-container">
+                                <span className="spinner"></span>
+                                <p>Loading proposals...</p>
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingProposals.map(product => (
+                                            <tr key={product.id}>
+                                                <td>{Number(product.id)}</td>
+                                                <td><strong>{product.name}</strong></td>
+                                                <td>{ethers.formatUnits(product.pricePerUnit, 0)} ₹</td>
+                                                <td>
+                                                    {product.proposalConfirmed ? 
+                                                        <span className="state-badge state-1">Confirmed - Shipping</span> : 
+                                                        <span className="state-badge state-0">Awaiting Wholesaler</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    {!product.proposalConfirmed && (
+                                                        <button
+                                                            onClick={() => handleCancelProposal(product.id)}
+                                                            className="button-action"
+                                                            disabled={actionLoading}
+                                                            style={{ backgroundColor: '#e74c3c' }}
+                                                        >
+                                                            Cancel & Refund
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* --- CARD 3: My Inventory (Owned Products) --- */}
+                <div className="card full-width" style={{ marginTop: '2rem' }}>
+                    <h2><span role="img" aria-label="shop">🏬</span> My Inventory</h2>
+                    <p>Products you own. Confirm receipt, list for sale, and rate wholesalers.</p>
+                    
+                    <Dashboard
+                        products={myInventory}
+                        loading={loading || actionLoading}
+                        currentRole="Retailer" 
+                        connectedWallet={connectedWallet}
+                        onAction={handleConfirmReceipt}
+                        onSetPrice={handleListForSale}
+                        onRate={handleRateWholesaler}
+                        onViewHistory={handleViewHistory}
+                    />
+                </div>
+            </div>
+                   {historyModalOpen && (
+                <ProductHistoryModal
+                    product={selectedProduct}
+                    onClose={() => setHistoryModalOpen(false)}
+                />
+            )}
+
+
+        </>
+    );
 }
 
 export default RetailerView;
-
