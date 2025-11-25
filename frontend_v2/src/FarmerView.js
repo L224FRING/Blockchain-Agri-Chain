@@ -9,21 +9,67 @@ import './App.css';
 function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogout }) {
     const [actionLoading, setActionLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState(null);
-
-    // Modal State
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [pendingProposals, setPendingProposals] = useState([]);
+    const [proposalLoading, setProposalLoading] = useState(false);
 
-    // --- NEW FILTERING LOGIC ---
+    // Fetch pending proposals for farmer's products
+    const fetchMyProposals = React.useCallback(async () => {
+        if (!connectedWallet || !window.ethereum || products.length === 0) {
+            setPendingProposals([]);
+            return;
+        }
+        
+        setProposalLoading(true);
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(SUPPLY_CHAIN_ADDRESS, SUPPLY_CHAIN_ABI, provider);
+            const myWallet = connectedWallet.toLowerCase();
+            const proposals = [];
+            
+            for (const product of products) {
+                // Only check products I own and created
+                if (product.farmer?.toLowerCase() === myWallet && product.owner.toLowerCase() === myWallet) {
+                    try {
+                        const proposal = await contract.transferProposals(product.id);
+                        // Check if there's an active proposal (farmer confirmed, not executed)
+                        if (proposal.proposer.toLowerCase() === myWallet && proposal.farmerConfirmed && !proposal.executed) {
+                            proposals.push({
+                                ...product,
+                                proposalTarget: proposal.target,
+                                proposalUsername: proposal.targetUsername,
+                                wholesalerConfirmed: proposal.wholesalerConfirmed
+                            });
+                        }
+                    } catch (err) {
+                        // No proposal exists for this product, that's fine
+                    }
+                }
+            }
+            setPendingProposals(proposals);
+        } catch (error) {
+            console.error("Error fetching farmer proposals:", error);
+        } finally {
+            setProposalLoading(false);
+        }
+    }, [products, connectedWallet]);
+
+    React.useEffect(() => {
+        fetchMyProposals();
+    }, [fetchMyProposals]);
+
+    // --- FILTERING LOGIC ---
 
     // 1. Get ALL products created by this farmer
     const allMyProducts = products.filter(
         p => p.farmer && p.farmer.toLowerCase() === connectedWallet.toLowerCase()
     );
 
-    // 2. Filter into "Inventory" (still owned)
+    // 2. Filter into "Inventory" (still owned, excluding those with pending proposals)
+    const pendingProposalIds = new Set(pendingProposals.map(p => p.id));
     const myInventory = allMyProducts.filter(
-        p => p.owner.toLowerCase() === connectedWallet.toLowerCase()
+        p => p.owner.toLowerCase() === connectedWallet.toLowerCase() && !pendingProposalIds.has(p.id)
     );
 
     // 3. Filter into "Sent" (owned by someone else)
@@ -103,7 +149,50 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
                         />
                     </div>
 
-                    {/* --- CARD 2: Sent Products --- */}
+                    {/* --- CARD 2: Pending Proposals --- */}
+                    {pendingProposals.length > 0 && (
+                        <div className="card dashboard-card">
+                            <h2><span role="img" aria-label="hourglass">⏳</span> Pending Transfer Proposals ({pendingProposals.length})</h2>
+                            <p>Products you've proposed to wholesalers. Waiting for their confirmation.</p>
+                            
+                            {proposalLoading ? (
+                                <div className="loading-container">
+                                    <span className="spinner"></span>
+                                    <p>Loading proposals...</p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Product</th>
+                                                <th>Proposed To</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pendingProposals.map(product => (
+                                                <tr key={product.id}>
+                                                    <td>{Number(product.id)}</td>
+                                                    <td><strong>{product.name}</strong></td>
+                                                    <td>{product.proposalUsername}</td>
+                                                    <td>
+                                                        {product.wholesalerConfirmed ? 
+                                                            <span className="state-badge state-1">Confirmed - Shipping</span> : 
+                                                            <span className="state-badge state-0">Awaiting Wholesaler</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* --- CARD 3: Sent Products --- */}
                     <div className="card dashboard-card" >
                         <h2><span role="img" aria-label="truck">🚚</span> Sent Products ({sentProducts.length})</h2>
                         <p>Products you have sold. You can track their ongoing journey here.</p>

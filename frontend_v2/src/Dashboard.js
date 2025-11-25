@@ -224,34 +224,47 @@ const ProductActions = ({ product, currentRole, connectedWallet, onAction, onSet
             );
         }
         
-        // Action: List for Sale with markup (state 5 - received by retailer)
+        // Action: Rate Wholesaler & List for Sale (state 5 - received by retailer)
         if (isOwner && product.currentState === 5) {
             return (
-                <div className="action-box">
-                    <label>Set Markup:</label>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <input
-                            type="number"
-                            placeholder="Markup %"
-                            value={markup}
-                            onChange={(e) => setMarkup(e.target.value)}
-                            style={{ width: '80px', padding: '6px 8px', fontSize: '0.9em' }}
-                            disabled={loading}
-                        />
-                        <button
-                            onClick={() => onSetPrice(product.id, markup)}
-                            className="button-action button-set-price"
-                            disabled={loading || !markup || Number(markup) <= 0}
-                        >
-                            List for Sale
-                        </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* --- Rating UI --- */}
+                    {!product.wholesalerRated ? (
+                        <div className="action-box">
+                            <label>Rate Wholesaler:</label>
+                            <StarRating onRate={(score) => onRate(product.id, score)} loading={loading} />
+                        </div>
+                    ) : (
+                        <span className="no-action-label">Wholesaler Rated ✔</span>
+                    )}
+
+                    {/* --- List for Sale UI --- */}
+                    <div className="action-box">
+                        <label>Set Markup:</label>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <input
+                                type="number"
+                                placeholder="Markup %"
+                                value={markup}
+                                onChange={(e) => setMarkup(e.target.value)}
+                                style={{ width: '80px', padding: '6px 8px', fontSize: '0.9em' }}
+                                disabled={loading}
+                            />
+                            <button
+                                onClick={() => onSetPrice(product.id, markup)}
+                                className="button-action button-set-price"
+                                disabled={loading || !markup || Number(markup) <= 0}
+                            >
+                                List for Sale
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
         }
         
-        // Action: Rate Wholesaler (states 5, 6, or 7 - after receiving)
-        if (isOwner && (product.currentState === 5 || product.currentState === 6 || product.currentState === 7)) {
+        // Action: Rate Wholesaler (states 6 or 7 - after listing/selling)
+        if (isOwner && (product.currentState === 6 || product.currentState === 7)) {
             if (!product.wholesalerRated) {
                 return (
                      <div className="action-box">
