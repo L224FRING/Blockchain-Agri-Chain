@@ -2,8 +2,8 @@ import supplyChainArtifact from './abi/SupplyChain.json';
 import roleManagerArtifact from './abi/RoleManager.json';
 
 // --- Contract Addresses (Sepolia) ---
-export const SUPPLY_CHAIN_ADDRESS = "0x983c61437E02eC0C07b3fdAD0FEAa205Cf23e78C";
-export const ROLE_MANAGER_ADDRESS = "0x537E59BF016a9213Ed98Bc49Ea81Af165CA0D153";
+export const SUPPLY_CHAIN_ADDRESS = "0x973Ac66B5CAe771537Ef81Cdc685CC899B2C3333";
+export const ROLE_MANAGER_ADDRESS = "0xf4d9d017C5ab50F8c2332C036C15f632c7fC3E26";
 
 // --- ABIs (synced from Hardhat artifacts) ---
 export const SUPPLY_CHAIN_ABI = supplyChainArtifact.abi;
