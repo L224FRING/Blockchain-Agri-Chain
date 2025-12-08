@@ -29,6 +29,18 @@ AgriChain is a blockchain-based supply chain management platform designed specif
 - **Payment Security**: Escrow-based payment system for secure transactions
 - **Fraud Prevention**: Cryptographic verification prevents counterfeit products
 
+### 🆕 Recent Upgrades (v2.0)
+
+AgriChain has been enhanced with powerful new features to improve usability and data management:
+
+- ✅ **Advanced Search & Filtering System** - Find products instantly with debounced search and multi-criteria filters
+- ✅ **Interactive Analytics Dashboard** - Visualize product distribution, pricing trends, and expiry status with Recharts
+- ✅ **Batch Operations** - Select multiple products for bulk actions like CSV export
+- ✅ **QR Code System** - Generate scannable QR codes for easy product verification
+- ✅ **Public Verification Page** - Allow anyone to verify product authenticity without a wallet
+- ✅ **Modern Dark Theme** - Eye-friendly dark mode UI across the entire application
+- ✅ **CSV Export** - Export product data with one click for external analysis
+
 ## ✨ Features
 
 ### Core Functionality
@@ -39,6 +51,16 @@ AgriChain is a blockchain-based supply chain management platform designed specif
 - **Rating System**: 5-star rating system for farmers, wholesalers, and retailers
 - **Real-Time Tracking**: Live updates on product location and status
 - **Transaction Verification**: Etherscan integration for blockchain proof
+
+### Advanced Features
+
+- **🔍 Search & Filtering**: Debounced search with 8 sorting options and multi-criteria filtering
+- **📊 Analytics Dashboard**: Real-time charts showing product distribution, pricing, and expiry status
+- **📦 Batch Operations**: Multi-select products for bulk export operations
+- **📤 CSV Export**: One-click export of product data with automatic date stamping
+- **🔗 QR Code Generation**: Generate, download, and share QR codes for product verification
+- **🌐 Public Verification**: No-wallet-required public page to verify product authenticity
+- **🎨 Dark Mode UI**: Modern dark theme throughout the application
 
 ### Role-Specific Features
 
@@ -102,7 +124,9 @@ Farmer → (2-party confirm) → Wholesaler → (2-party confirm) → Retailer �
 - **React 19**: UI framework
 - **ethers.js v6**: Blockchain interaction
 - **MetaMask**: Wallet integration
-- **CSS3**: Custom styling with animations
+- **Recharts**: Data visualization and analytics charts
+- **qrcode.react**: QR code generation
+- **CSS3**: Custom dark theme styling with animations
 
 ### Development Tools
 - **Node.js**: Runtime environment
@@ -280,8 +304,21 @@ Blockchain-Supply-Chain/
 ├── frontend_v2/                      # React frontend
 │   ├── public/
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── Auth.js               # Authentication component
+│   │   ├── components/               # Reusable components
+│   │   │   ├── Auth.js               # Authentication component
+│   │   │   ├── AnalyticsDashboard.js # Analytics with charts
+│   │   │   ├── BatchOperations.js    # Multi-select operations
+│   │   │   ├── ExportButton.js       # CSV export functionality
+│   │   │   ├── FilterPanel.js        # Advanced filtering UI
+│   │   │   ├── SearchBar.js          # Search component
+│   │   │   ├── SortDropdown.js       # Sorting options
+│   │   │   ├── ProductQRCode.js      # QR code generator
+│   │   │   ├── RatingBadge.js        # Rating display
+│   │   │   └── StarRating.js         # Rating input
+│   │   ├── hooks/                    # Custom React hooks
+│   │   │   └── useProductFilter.js   # Filter & search logic
+│   │   ├── utils/                    # Utility functions
+│   │   │   └── exportUtils.js        # CSV export utilities
 │   │   ├── abi/                      # Contract ABIs
 │   │   │   ├── SupplyChain.json
 │   │   │   └── RoleManager.json
@@ -293,10 +330,9 @@ Blockchain-Supply-Chain/
 │   │   ├── ConsumerView.js           # Consumer interface
 │   │   ├── Dashboard.js              # Product table component
 │   │   ├── AddProduct.js             # Product creation form
-│   │   ├── RatingBadge.js            # Rating display component
-│   │   ├── StarRating.js             # Rating input component
+│   │   ├── PublicVerify.js           # Public verification page
 │   │   ├── ProductHistoryModal.js    # History viewer
-│   │   ├── App.css                   # Main styles
+│   │   ├── App.css                   # Main dark theme styles
 │   │   └── expiry.css                # Expiry date styles
 │   └── package.json
 │
@@ -442,10 +478,12 @@ Average gas costs:
 - [ ] IPFS integration for product images
 - [ ] Mobile app (React Native)
 - [ ] IoT sensor integration
-- [ ] Advanced analytics dashboard
 - [ ] Multi-chain support
 - [ ] Token rewards system
 - [ ] Dispute resolution mechanism
+- [ ] Email/SMS notifications
+- [ ] Advanced reporting and insights
+- [ ] Inventory management automation
 
 ## 🤝 Contributing
 
