@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import Dashboard from './Dashboard';
 import ProductHistoryModal from './ProductHistoryModal';
+import FilterControls from './components/FilterControls';
+import ExportButton from './components/ExportButton';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import BatchOperations from './components/BatchOperations';
+import { useProductFilter } from './hooks/useProductFilter';
+import { exportProductsToCSV } from './utils/exportUtils';
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS, RETAILER_FOR_SALE_STATES } from './config';
 import './App.css';
 
@@ -108,11 +114,20 @@ function ConsumerView({ products, loading, connectedWallet, fetchProducts, onLog
         p => p.owner.toLowerCase() === connectedWallet.toLowerCase()
     );
 
+    // Search & Filter Hooks
+    const marketplaceFilter = useProductFilter(marketplaceProducts);
+    const purchasesFilter = useProductFilter(myPurchases);
+
     return (
         <>
             <button onClick={onLogout} className="back-button">
                 &larr; Back to Home / Select Role
             </button>
+
+            {/* Analytics Dashboard */}
+            <div className="full-width-section animate-fade-in" style={{ marginBottom: '20px' }}>
+                <AnalyticsDashboard products={products} role="Consumer" />
+            </div>
 
             <div className="main-layout-single animate-fade-in">
 
@@ -125,11 +140,43 @@ function ConsumerView({ products, loading, connectedWallet, fetchProducts, onLog
 
                 {/* CARD 1: Retailer Marketplace */}
                 <div className="card full-width">
-                    <h2><span role="img" aria-label="market">🛒</span> Retailer Marketplace</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h2><span role="img" aria-label="market">🛒</span> Retailer Marketplace</h2>
+                        <ExportButton products={marketplaceFilter.filteredProducts} filename="retailer_marketplace" />
+                    </div>
                     <p>Products available for purchase from retailers.</p>
                     
+                    {/* Search & Filter Controls */}
+                    <FilterControls
+                        searchTerm={marketplaceFilter.searchTerm}
+                        setSearchTerm={marketplaceFilter.setSearchTerm}
+                        filters={marketplaceFilter.filters}
+                        setFilters={marketplaceFilter.setFilters}
+                        sortBy={marketplaceFilter.sortBy}
+                        setSortBy={marketplaceFilter.setSortBy}
+                        clearFilters={marketplaceFilter.clearFilters}
+                        hasActiveFilters={marketplaceFilter.hasActiveFilters}
+                        totalProducts={marketplaceFilter.totalProducts}
+                        filteredCount={marketplaceFilter.filteredCount}
+                        searchPlaceholder="Search retailer products..."
+                    />
+                    
+                    {/* Batch Operations */}
+                    <BatchOperations
+                        products={marketplaceFilter.filteredProducts}
+                        onBatchAction={async (action, selectedProducts) => {
+                            if (action === 'export') {
+                                exportProductsToCSV(selectedProducts, 'retailer_marketplace_selected');
+                            }
+                        }}
+                        availableActions={[
+                            { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                        ]}
+                        role="Consumer"
+                    />
+                    
                     <Dashboard
-                        products={marketplaceProducts}
+                        products={marketplaceFilter.filteredProducts}
                         loading={loading || actionLoading}
                         currentRole="Consumer"
                         connectedWallet={connectedWallet}
@@ -142,11 +189,43 @@ function ConsumerView({ products, loading, connectedWallet, fetchProducts, onLog
 
                 {/* CARD 2: My Purchases */}
                 <div className="card full-width" style={{ marginTop: '2rem' }}>
-                    <h2><span role="img" aria-label="shopping-bags">🛍️</span> My Purchases</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h2><span role="img" aria-label="shopping-bags">🛍️</span> My Purchases</h2>
+                        <ExportButton products={purchasesFilter.filteredProducts} filename="my_purchases" />
+                    </div>
                     <p>Products you have purchased. View full supply chain history and rate retailers.</p>
                     
+                    {/* Search & Filter Controls */}
+                    <FilterControls
+                        searchTerm={purchasesFilter.searchTerm}
+                        setSearchTerm={purchasesFilter.setSearchTerm}
+                        filters={purchasesFilter.filters}
+                        setFilters={purchasesFilter.setFilters}
+                        sortBy={purchasesFilter.sortBy}
+                        setSortBy={purchasesFilter.setSortBy}
+                        clearFilters={purchasesFilter.clearFilters}
+                        hasActiveFilters={purchasesFilter.hasActiveFilters}
+                        totalProducts={purchasesFilter.totalProducts}
+                        filteredCount={purchasesFilter.filteredCount}
+                        searchPlaceholder="Search your purchases..."
+                    />
+                    
+                    {/* Batch Operations */}
+                    <BatchOperations
+                        products={purchasesFilter.filteredProducts}
+                        onBatchAction={async (action, selectedProducts) => {
+                            if (action === 'export') {
+                                exportProductsToCSV(selectedProducts, 'my_purchases_selected');
+                            }
+                        }}
+                        availableActions={[
+                            { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                        ]}
+                        role="Consumer"
+                    />
+                    
                     <Dashboard
-                        products={myPurchases}
+                        products={purchasesFilter.filteredProducts}
                         loading={loading || actionLoading}
                         currentRole="Consumer"
                         connectedWallet={connectedWallet}

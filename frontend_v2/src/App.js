@@ -1,16 +1,18 @@
 import './App.css';
-import { useState, useEffect, useCallback } from 'react'; // CORRECTED SYNTAX
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-// Make sure you have your contract address and ABI correctly defined in config.js
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 
 // Import Views
-// Import views
 import Auth from './components/Auth';
 import FarmerView from './FarmerView';
 import WholesalerView from './WholesalerView';
 import RetailerView from './RetailerView';
 import ConsumerView from './ConsumerView';
+
+// Import Notification System
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationBell from './components/NotificationBell';
 
 
 function App() {
@@ -293,39 +295,43 @@ function App() {
 
   // --- Main App JSX ---
   return (
-    <div className="App">
-      {/* Header Section */}
-      <header className="app-header">
-        <div className="logo">🌱 AgriChain</div> {/* Project Logo/Title */}
-        {/* Right side of header: Wallet Info & Logout */}
-        <div className="header-right">
-          {connectedWallet ? (
-            // Display wallet info and role badge if connected
-            <div className="wallet-info">
-              🔗 {`${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`}
-              {loggedInRole && <span className="role-badge">{loggedInRole}</span>}
-            </div>
-          ) : (
-            // Display placeholder if wallet is not connected
-            <span className="wallet-info-placeholder">Wallet Not Connected</span>
-          )}
-          {/* Show Logout button only if a role is selected (i.e., user is logged in) */}
-          {loggedInRole && (
-               <button onClick={handleLogout} className="logout-button">Logout</button>
-          )}
-        </div>
-      </header>
+    <NotificationProvider connectedWallet={connectedWallet}>
+      <div className="App">
+        {/* Header Section */}
+        <header className="app-header">
+          <div className="logo">🌱 AgriChain</div>
+          {/* Right side of header: Wallet Info, Notifications & Logout */}
+          <div className="header-right">
+            {connectedWallet ? (
+              <>
+                <div className="wallet-info">
+                  🔗 {`${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`}
+                  {loggedInRole && <span className="role-badge">{loggedInRole}</span>}
+                </div>
+                {/* Notification Bell */}
+                {loggedInRole && <NotificationBell />}
+              </>
+            ) : (
+              <span className="wallet-info-placeholder">Wallet Not Connected</span>
+            )}
+            {/* Show Logout button only if a role is selected */}
+            {loggedInRole && (
+              <button onClick={handleLogout} className="logout-button">Logout</button>
+            )}
+          </div>
+        </header>
 
-      {/* Main Content Area - Renders Home or Role View */}
-      <main className="container">
-        {renderContent()}
-      </main>
+        {/* Main Content Area - Renders Home or Role View */}
+        <main className="container">
+          {renderContent()}
+        </main>
 
-      {/* Footer Section */}
-      <footer className="app-footer">
-        <p>&copy; 2025 AgriChain Project</p>
-      </footer>
-    </div>
+        {/* Footer Section */}
+        <footer className="app-footer">
+          <p>&copy; 2025 AgriChain Project</p>
+        </footer>
+      </div>
+    </NotificationProvider>
   );
 }
 

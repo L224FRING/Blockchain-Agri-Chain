@@ -1,0 +1,263 @@
+.batch-operations {
+  margin-bottom: 20px;
+}
+
+.batch-toggle-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.batch-toggle-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+.batch-toggle-btn:active {
+  transform: translateY(0);
+}
+
+/* Batch Panel */
+.batch-panel {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 15px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.batch-count {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.batch-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.batch-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.batch-btn-secondary {
+  background: white;
+  color: #374151;
+  border: 2px solid #d1d5db;
+}
+
+.batch-btn-secondary:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.batch-btn-action {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.batch-btn-action:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.batch-btn-action:active {
+  transform: translateY(0);
+}
+
+.batch-btn-action:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Batch Actions */
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.batch-actions-label {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Selection List */
+.batch-selection-list {
+  max-height: 400px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.batch-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.batch-checkbox-item:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.batch-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.batch-product-info {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+}
+
+.batch-product-info strong {
+  color: #1f2937;
+  margin-right: 8px;
+}
+
+.batch-product-meta {
+  color: #6b7280;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+/* Scrollbar Styling */
+.batch-selection-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.batch-selection-list::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.batch-selection-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.batch-selection-list::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .batch-panel {
+    padding: 15px;
+  }
+
+  .batch-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .batch-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .batch-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batch-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .batch-selection-list {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .batch-toggle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .batch-checkbox-item {
+    padding: 10px;
+  }
+
+  .batch-product-info {
+    font-size: 13px;
+  }
+
+  .batch-product-meta {
+    display: block;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+}

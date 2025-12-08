@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import ProductHistoryModal from './ProductHistoryModal';
+import FilterControls from './components/FilterControls';
+import ExportButton from './components/ExportButton';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import BatchOperations from './components/BatchOperations';
+import { useProductFilter } from './hooks/useProductFilter';
+import { exportProductsToCSV } from './utils/exportUtils';
 import { ethers } from 'ethers';
 import Dashboard from './Dashboard';
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
@@ -254,6 +260,10 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
         p => p.owner.toLowerCase() === connectedWallet.toLowerCase()
     );
 
+    // Search & Filter Hooks
+    const marketplaceFilter = useProductFilter(marketplaceProducts);
+    const inventoryFilter = useProductFilter(myInventory);
+
     const handleViewHistory = (product) => {
         setSelectedProduct(product);
         setHistoryModalOpen(true);
@@ -266,6 +276,11 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
                 &larr; Back to Home / Select Role
             </button>
 
+            {/* Analytics Dashboard */}
+            <div className="full-width-section animate-fade-in" style={{ marginBottom: '20px' }}>
+                <AnalyticsDashboard products={products} role="Retailer" />
+            </div>
+
             <div className="main-layout-single animate-fade-in">
 
                 {/* --- Action Message Bar --- */}
@@ -277,11 +292,43 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
 
                 {/* --- CARD 1: Marketplace (Products to Propose Purchase) --- */}
                 <div className="card full-width">
-                    <h2><span role="img" aria-label="market">🛒</span> Wholesaler Marketplace</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h2><span role="img" aria-label="market">🛒</span> Wholesaler Marketplace</h2>
+                        <ExportButton products={marketplaceFilter.filteredProducts} filename="wholesaler_marketplace" />
+                    </div>
                     <p>Products available for purchase from wholesalers. Propose purchase with payment held in escrow.</p>
                     
+                    {/* Search & Filter Controls */}
+                    <FilterControls
+                        searchTerm={marketplaceFilter.searchTerm}
+                        setSearchTerm={marketplaceFilter.setSearchTerm}
+                        filters={marketplaceFilter.filters}
+                        setFilters={marketplaceFilter.setFilters}
+                        sortBy={marketplaceFilter.sortBy}
+                        setSortBy={marketplaceFilter.setSortBy}
+                        clearFilters={marketplaceFilter.clearFilters}
+                        hasActiveFilters={marketplaceFilter.hasActiveFilters}
+                        totalProducts={marketplaceFilter.totalProducts}
+                        filteredCount={marketplaceFilter.filteredCount}
+                        searchPlaceholder="Search wholesaler products..."
+                    />
+                    
+                    {/* Batch Operations */}
+                    <BatchOperations
+                        products={marketplaceFilter.filteredProducts}
+                        onBatchAction={async (action, selectedProducts) => {
+                            if (action === 'export') {
+                                exportProductsToCSV(selectedProducts, 'wholesaler_marketplace_selected');
+                            }
+                        }}
+                        availableActions={[
+                            { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                        ]}
+                        role="Retailer"
+                    />
+                    
                     <Dashboard
-                        products={marketplaceProducts}
+                        products={marketplaceFilter.filteredProducts}
                         loading={loading || actionLoading}
                         currentRole="Retailer"
                         connectedWallet={connectedWallet}
@@ -350,11 +397,43 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
 
                 {/* --- CARD 3: My Inventory (Owned Products) --- */}
                 <div className="card full-width" style={{ marginTop: '2rem' }}>
-                    <h2><span role="img" aria-label="shop">🏬</span> My Inventory</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h2><span role="img" aria-label="shop">🏬</span> My Inventory</h2>
+                        <ExportButton products={inventoryFilter.filteredProducts} filename="retailer_inventory" />
+                    </div>
                     <p>Products you own. Confirm receipt, list for sale, and rate wholesalers.</p>
                     
+                    {/* Search & Filter Controls */}
+                    <FilterControls
+                        searchTerm={inventoryFilter.searchTerm}
+                        setSearchTerm={inventoryFilter.setSearchTerm}
+                        filters={inventoryFilter.filters}
+                        setFilters={inventoryFilter.setFilters}
+                        sortBy={inventoryFilter.sortBy}
+                        setSortBy={inventoryFilter.setSortBy}
+                        clearFilters={inventoryFilter.clearFilters}
+                        hasActiveFilters={inventoryFilter.hasActiveFilters}
+                        totalProducts={inventoryFilter.totalProducts}
+                        filteredCount={inventoryFilter.filteredCount}
+                        searchPlaceholder="Search your inventory..."
+                    />
+                    
+                    {/* Batch Operations */}
+                    <BatchOperations
+                        products={inventoryFilter.filteredProducts}
+                        onBatchAction={async (action, selectedProducts) => {
+                            if (action === 'export') {
+                                exportProductsToCSV(selectedProducts, 'retailer_inventory_selected');
+                            }
+                        }}
+                        availableActions={[
+                            { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                        ]}
+                        role="Retailer"
+                    />
+                    
                     <Dashboard
-                        products={myInventory}
+                        products={inventoryFilter.filteredProducts}
                         loading={loading || actionLoading}
                         currentRole="Retailer" 
                         connectedWallet={connectedWallet}

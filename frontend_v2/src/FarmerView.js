@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import AddProduct from './AddProduct';
 import Dashboard from './Dashboard';
-import ProductHistoryModal from './ProductHistoryModal'; // Import the history modal
+import ProductHistoryModal from './ProductHistoryModal';
+import FilterControls from './components/FilterControls';
+import ExportButton from './components/ExportButton';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import BatchOperations from './components/BatchOperations';
+import { useProductFilter } from './hooks/useProductFilter';
+import { exportProductsToCSV } from './utils/exportUtils';
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 import './App.css';
 
@@ -77,6 +83,10 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
         p => p.owner.toLowerCase() !== connectedWallet.toLowerCase()
     );
 
+    // --- SEARCH & FILTER HOOKS ---
+    const inventoryFilter = useProductFilter(myInventory);
+    const sentFilter = useProductFilter(sentProducts);
+
     // --- (shipToWholesaler function is unchanged) ---
     const shipToWholesaler = async (productId, wholesalerUsername) => {
         if (!window.ethereum) return setActionMessage("Error: MetaMask not found.");
@@ -123,6 +133,11 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
                 </p>
             )}
 
+            {/* Analytics Dashboard */}
+            <div className="full-width-section animate-fade-in" style={{ marginBottom: '20px' }}>
+                <AnalyticsDashboard products={products} role="Farmer" useDemoData={true} />
+            </div>
+
             <div className="main-layout animate-fade-in">
 
                 {/* Left Column: Add Product Form (Unchanged) */}
@@ -137,9 +152,43 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
                 <div className="dashboard-column">
                     {/* --- CARD 1: My Inventory --- */}
                     <div className="card dashboard-card">
-                        <h2><span role="img" aria-label="tractor">🚜</span> Your Inventory ({myInventory.length})</h2>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h2><span role="img" aria-label="tractor">🚜</span> Your Inventory ({myInventory.length})</h2>
+                            <ExportButton products={inventoryFilter.filteredProducts} filename="farmer_inventory" />
+                        </div>
+                        
+                        {/* Search & Filter Controls */}
+                        <FilterControls
+                            searchTerm={inventoryFilter.searchTerm}
+                            setSearchTerm={inventoryFilter.setSearchTerm}
+                            filters={inventoryFilter.filters}
+                            setFilters={inventoryFilter.setFilters}
+                            sortBy={inventoryFilter.sortBy}
+                            setSortBy={inventoryFilter.setSortBy}
+                            clearFilters={inventoryFilter.clearFilters}
+                            hasActiveFilters={inventoryFilter.hasActiveFilters}
+                            totalProducts={inventoryFilter.totalProducts}
+                            filteredCount={inventoryFilter.filteredCount}
+                            searchPlaceholder="Search your inventory..."
+                        />
+                        
+                        {/* Batch Operations */}
+                        <BatchOperations
+                            products={inventoryFilter.filteredProducts}
+                            onBatchAction={async (action, selectedProducts) => {
+                                if (action === 'export') {
+                                    // Export selected products to CSV
+                                    exportProductsToCSV(selectedProducts, 'farmer_inventory_selected');
+                                }
+                            }}
+                            availableActions={[
+                                { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                            ]}
+                            role="Farmer"
+                        />
+                        
                         <Dashboard
-                            products={myInventory}
+                            products={inventoryFilter.filteredProducts}
                             loading={loading || actionLoading}
                             currentRole="Farmer"
                             connectedWallet={connectedWallet}
@@ -194,10 +243,29 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
 
                     {/* --- CARD 3: Sent Products --- */}
                     <div className="card dashboard-card" >
-                        <h2><span role="img" aria-label="truck">🚚</span> Sent Products ({sentProducts.length})</h2>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <h2><span role="img" aria-label="truck">🚚</span> Sent Products ({sentProducts.length})</h2>
+                            <ExportButton products={sentFilter.filteredProducts} filename="farmer_sent_products" />
+                        </div>
                         <p>Products you have sold. You can track their ongoing journey here.</p>
+                        
+                        {/* Search & Filter Controls */}
+                        <FilterControls
+                            searchTerm={sentFilter.searchTerm}
+                            setSearchTerm={sentFilter.setSearchTerm}
+                            filters={sentFilter.filters}
+                            setFilters={sentFilter.setFilters}
+                            sortBy={sentFilter.sortBy}
+                            setSortBy={sentFilter.setSortBy}
+                            clearFilters={sentFilter.clearFilters}
+                            hasActiveFilters={sentFilter.hasActiveFilters}
+                            totalProducts={sentFilter.totalProducts}
+                            filteredCount={sentFilter.filteredCount}
+                            searchPlaceholder="Search sent products..."
+                        />
+                        
                         <Dashboard
-                            products={sentProducts}
+                            products={sentFilter.filteredProducts}
                             loading={loading || actionLoading}
                             currentRole="Farmer" // Keep role as Farmer
                             connectedWallet={connectedWallet}

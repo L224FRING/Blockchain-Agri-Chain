@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import RatingBadge from './RatingBadge';
+import ProductQRCode from './components/ProductQRCode';
 // Import the necessary mappings from the config file
 import { STATE_MAPPING, ROLE_MANAGER_ABI, ROLE_MANAGER_ADDRESS, FOR_SALE_STATES, SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
 import './App.css'; // For general styling
@@ -321,6 +322,7 @@ const ProductActions = ({ product, currentRole, connectedWallet, onAction, onSet
 // --- Dashboard Component (Main) ---
 // We must add the `onSetPrice` prop
 function Dashboard({ products, loading, currentRole, connectedWallet, onAction, onSetPrice, onRate ,onViewHistory}) {
+    const [qrProduct, setQrProduct] = useState(null);
 
     if (loading) return (
         <div className="loading-container">
@@ -430,8 +432,16 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction, 
                                     <button 
                                         className="button-history"
                                         onClick={() => onViewHistory(product)}
+                                        title="View supply chain history"
                                     >
-                                        View
+                                        📜 History
+                                    </button>
+                                    <button 
+                                        className="button-qr"
+                                        onClick={() => setQrProduct(product)}
+                                        title="Generate QR code"
+                                    >
+                                        📱 QR
                                     </button>
                                 </td>
                             </tr>
@@ -439,6 +449,14 @@ function Dashboard({ products, loading, currentRole, connectedWallet, onAction, 
                     </tbody>
                 </table>
             </div>
+
+            {/* QR Code Modal */}
+            {qrProduct && (
+                <ProductQRCode
+                    product={qrProduct}
+                    onClose={() => setQrProduct(null)}
+                />
+            )}
         </div>
     );
 }

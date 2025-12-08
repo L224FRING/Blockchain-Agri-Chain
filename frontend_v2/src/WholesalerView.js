@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ProductHistoryModal from './ProductHistoryModal';
 import RatingBadge from './RatingBadge';
+import FilterControls from './components/FilterControls';
+import ExportButton from './components/ExportButton';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import BatchOperations from './components/BatchOperations';
+import { useProductFilter } from './hooks/useProductFilter';
+import { exportProductsToCSV } from './utils/exportUtils';
 import { ethers } from 'ethers';
 import Dashboard from './Dashboard';
 import { SUPPLY_CHAIN_ABI, SUPPLY_CHAIN_ADDRESS } from './config';
@@ -283,11 +289,19 @@ function WholesalerView({ products, loading, connectedWallet, fetchProducts, onL
         p => p.owner.toLowerCase() === connectedWallet.toLowerCase()
     );
 
+    // Search & Filter Hook
+    const inventoryFilter = useProductFilter(myInventory);
+
     return (
         <>
             <button onClick={onLogout} className="back-button">
                 &larr; Back to Home / Select Role
             </button>
+
+            {/* Analytics Dashboard */}
+            <div className="full-width-section animate-fade-in" style={{ marginBottom: '20px' }}>
+                <AnalyticsDashboard products={products} role="Wholesaler" />
+            </div>
 
             <div className="main-layout-single animate-fade-in">
                 {actionMessage && (
@@ -416,11 +430,43 @@ function WholesalerView({ products, loading, connectedWallet, fetchProducts, onL
 
                 {/* --- CARD 3: MY INVENTORY (UPDATED) --- */}
                 <div className="card full-width" style={{ marginTop: '2rem' }}>
-                    <h2><span role="img" aria-label="factory">🏭</span> My Inventory</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h2><span role="img" aria-label="factory">🏭</span> My Inventory</h2>
+                        <ExportButton products={inventoryFilter.filteredProducts} filename="wholesaler_inventory" />
+                    </div>
                     <p>Products you own. Confirm receipt, then set a price to sell to retailers.</p>
                     
+                    {/* Search & Filter Controls */}
+                    <FilterControls
+                        searchTerm={inventoryFilter.searchTerm}
+                        setSearchTerm={inventoryFilter.setSearchTerm}
+                        filters={inventoryFilter.filters}
+                        setFilters={inventoryFilter.setFilters}
+                        sortBy={inventoryFilter.sortBy}
+                        setSortBy={inventoryFilter.setSortBy}
+                        clearFilters={inventoryFilter.clearFilters}
+                        hasActiveFilters={inventoryFilter.hasActiveFilters}
+                        totalProducts={inventoryFilter.totalProducts}
+                        filteredCount={inventoryFilter.filteredCount}
+                        searchPlaceholder="Search your inventory..."
+                    />
+                    
+                    {/* Batch Operations */}
+                    <BatchOperations
+                        products={inventoryFilter.filteredProducts}
+                        onBatchAction={async (action, selectedProducts) => {
+                            if (action === 'export') {
+                                exportProductsToCSV(selectedProducts, 'wholesaler_inventory_selected');
+                            }
+                        }}
+                        availableActions={[
+                            { id: 'export', label: 'Export Selected', icon: '📊', className: 'batch-btn-action' }
+                        ]}
+                        role="Wholesaler"
+                    />
+                    
                     <Dashboard
-                        products={myInventory}
+                        products={inventoryFilter.filteredProducts}
                         loading={loading || actionLoading} 
                         currentRole="Wholesaler"
                         connectedWallet={connectedWallet}
