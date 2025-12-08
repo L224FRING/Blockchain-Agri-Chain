@@ -84,8 +84,8 @@ function FarmerView({ products, loading, connectedWallet, fetchProducts, onLogou
     );
 
     // --- SEARCH & FILTER HOOKS ---
-    const inventoryFilter = useProductFilter(myInventory);
-    const sentFilter = useProductFilter(sentProducts);
+    const inventoryFilter = useProductFilter(myInventory, 'farmer-inventory');
+    const sentFilter = useProductFilter(sentProducts, 'farmer-sent');
 
     // --- (shipToWholesaler function is unchanged) ---
     const shipToWholesaler = async (productId, wholesalerUsername) => {

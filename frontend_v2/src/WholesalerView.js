@@ -290,7 +290,7 @@ function WholesalerView({ products, loading, connectedWallet, fetchProducts, onL
     );
 
     // Search & Filter Hook
-    const inventoryFilter = useProductFilter(myInventory);
+    const inventoryFilter = useProductFilter(myInventory, 'wholesaler-inventory');
 
     return (
         <>

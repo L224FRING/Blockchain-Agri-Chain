@@ -54,7 +54,7 @@ const AnalyticsDashboard = ({ products, role, useDemoData = false }) => {
     ];
     
     products.forEach(p => {
-      const price = Number(p.price || 0);
+      const price = Number(p.pricePerUnit || p.price || 0);
       const range = priceRanges.find(r => price >= r.min && price < r.max);
       if (range) range.count++;
     });
@@ -80,8 +80,11 @@ const AnalyticsDashboard = ({ products, role, useDemoData = false }) => {
       { name: 'Expired', value: expired, color: '#ef4444' }
     ].filter(d => d.value > 0);
 
-    // Total value
-    const totalValue = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
+    // Total value - using pricePerUnit field
+    const totalValue = products.reduce((sum, p) => {
+      const price = Number(p.pricePerUnit || p.price || 0);
+      return sum + price;
+    }, 0);
     const avgPrice = products.length > 0 ? totalValue / products.length : 0;
 
     // Quantity stats

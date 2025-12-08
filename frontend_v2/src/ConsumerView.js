@@ -115,8 +115,8 @@ function ConsumerView({ products, loading, connectedWallet, fetchProducts, onLog
     );
 
     // Search & Filter Hooks
-    const marketplaceFilter = useProductFilter(marketplaceProducts);
-    const purchasesFilter = useProductFilter(myPurchases);
+    const marketplaceFilter = useProductFilter(marketplaceProducts, 'consumer-marketplace');
+    const purchasesFilter = useProductFilter(myPurchases, 'consumer-purchases');
 
     return (
         <>

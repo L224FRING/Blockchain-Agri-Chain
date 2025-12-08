@@ -10,10 +10,6 @@ import WholesalerView from './WholesalerView';
 import RetailerView from './RetailerView';
 import ConsumerView from './ConsumerView';
 
-// Import Notification System
-import { NotificationProvider } from './context/NotificationContext';
-import NotificationBell from './components/NotificationBell';
-
 
 function App() {
   // State Hooks - These define the setters that ESLint reported as undefined
@@ -295,12 +291,11 @@ function App() {
 
   // --- Main App JSX ---
   return (
-    <NotificationProvider connectedWallet={connectedWallet}>
-      <div className="App">
+    <div className="App">
         {/* Header Section */}
         <header className="app-header">
           <div className="logo">🌱 AgriChain</div>
-          {/* Right side of header: Wallet Info, Notifications & Logout */}
+          {/* Right side of header: Wallet Info & Logout */}
           <div className="header-right">
             {connectedWallet ? (
               <>
@@ -308,8 +303,6 @@ function App() {
                   🔗 {`${connectedWallet.substring(0, 6)}...${connectedWallet.substring(connectedWallet.length - 4)}`}
                   {loggedInRole && <span className="role-badge">{loggedInRole}</span>}
                 </div>
-                {/* Notification Bell */}
-                {loggedInRole && <NotificationBell />}
               </>
             ) : (
               <span className="wallet-info-placeholder">Wallet Not Connected</span>
@@ -331,7 +324,6 @@ function App() {
           <p>&copy; 2025 AgriChain Project</p>
         </footer>
       </div>
-    </NotificationProvider>
   );
 }
 

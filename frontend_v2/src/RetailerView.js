@@ -261,8 +261,8 @@ function RetailerView({ products, loading, connectedWallet, fetchProducts, onLog
     );
 
     // Search & Filter Hooks
-    const marketplaceFilter = useProductFilter(marketplaceProducts);
-    const inventoryFilter = useProductFilter(myInventory);
+    const marketplaceFilter = useProductFilter(marketplaceProducts, 'retailer-marketplace');
+    const inventoryFilter = useProductFilter(myInventory, 'retailer-inventory');
 
     const handleViewHistory = (product) => {
         setSelectedProduct(product);

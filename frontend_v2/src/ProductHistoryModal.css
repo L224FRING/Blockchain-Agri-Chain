@@ -1,8 +1,8 @@
 /* --- History Button --- */
 .button-history {
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
+  background-color: #2a2a40;
+  color: #f0f0f5;
+  border: 1px solid #404060;
   padding: 5px 10px;
   font-size: 0.9em;
   border-radius: 4px;
@@ -10,7 +10,7 @@
   transition: background-color 0.2s;
 }
 .button-history:hover {
-  background-color: #e0e0e0;
+  background-color: #1e1e2f;
 }
 
 /* --- History Modal Styles --- */
@@ -29,7 +29,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: #2a2a40;
   padding: 25px;
   border-radius: 8px;
   width: 90%;
@@ -37,7 +37,9 @@
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+  border: 1px solid #404060;
+  color: #f0f0f5;
 }
 
 .modal-close {
@@ -47,12 +49,12 @@
   background: none;
   border: none;
   font-size: 1.8rem;
-  color: #aaa;
+  color: #a0a0c0;
   cursor: pointer;
   line-height: 1;
 }
 .modal-close:hover {
-  color: #333;
+  color: #f0f0f5;
 }
 
 /* --- History Timeline --- */
@@ -65,7 +67,7 @@
 .timeline-item {
   position: relative;
   padding: 10px 10px 15px 30px;
-  border-left: 3px solid #e0e0e0;
+  border-left: 3px solid #404060;
 }
 .timeline-item:last-child {
   border-left: 3px solid transparent;
@@ -78,8 +80,8 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #ccc;
-  border: 2px solid white;
+  background: #555b7a;
+  border: 2px solid #2a2a40;
 }
 
 /* Colors based on type */
@@ -91,27 +93,27 @@
 
 .timeline-content .timeline-date {
   font-size: 0.85em;
-  color: #777;
+  color: #a0a0c0;
   display: block;
   margin-bottom: 5px;
 }
 .timeline-content .timeline-title {
   font-weight: bold;
   font-size: 1.1em;
-  color: #333;
+  color: #f0f0f5;
 }
 .timeline-content .timeline-desc {
   margin: 5px 0 10px 0;
-  color: #555;
+  color: #a0a0c0;
 }
 .timeline-footer {
   display: flex;
   justify-content: space-between;
   font-size: 0.9em;
-  color: #777;
+  color: #a0a0c0;
 }
 .timeline-footer a {
-  color: var(--primary-color);
+  color: #2ecc71;
   text-decoration: none;
   font-weight: bold;
 }

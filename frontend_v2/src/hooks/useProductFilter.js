@@ -3,8 +3,10 @@ import { useState, useMemo, useEffect } from 'react';
 /**
  * Custom hook for filtering and sorting products
  * Includes search, filters, sorting, and localStorage persistence
+ * @param {Array} products - Array of products to filter
+ * @param {string} storageKey - Unique key for localStorage (e.g., 'farmer-inventory', 'wholesaler-marketplace')
  */
-export const useProductFilter = (products) => {
+export const useProductFilter = (products, storageKey = 'default') => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     states: [],
@@ -14,27 +16,19 @@ export const useProductFilter = (products) => {
   });
   const [sortBy, setSortBy] = useState('date-desc');
 
-  // Load filters from localStorage on mount
+  // Clear filters on mount - fresh start every time
+  // This prevents old filters from hiding products when you login
   useEffect(() => {
-    const saved = localStorage.getItem('agrichain-filters');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.filters) setFilters(parsed.filters);
-        if (parsed.sortBy) setSortBy(parsed.sortBy);
-      } catch (e) {
-        console.error('Error loading filters:', e);
-      }
+    // Clean up any old filter keys from localStorage
+    if (localStorage.getItem('agrichain-filters')) {
+      localStorage.removeItem('agrichain-filters');
     }
-  }, []);
+    // Also clean up view-specific keys
+    localStorage.removeItem(`agrichain-filters-${storageKey}`);
+  }, [storageKey]);
 
-  // Save filters to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('agrichain-filters', JSON.stringify({
-      filters,
-      sortBy
-    }));
-  }, [filters, sortBy]);
+  // Note: We don't save filters to localStorage anymore
+  // Filters reset on every page load for a clean experience
 
   // Main filtering and sorting logic
   const filteredProducts = useMemo(() => {
